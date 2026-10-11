@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* `dark:` utilities follow the .dark class on <html> (set by the theme toggle / system setting). */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   color-scheme: light;
 }
@@ -7,4 +10,94 @@
 body {
   background: #f6f7f9;
   color: #111827;
+}
+
+/* ---------------------------------------------------------------------------------------------
+   Dark theme.
+   Components use Tailwind's gray scale for surfaces/text/borders and 50–200 tints for soft
+   badges, so dark mode remaps those palette variables once instead of touching every component:
+   grays are inverted, light tints become deep tints, and dark accent text becomes light.
+   (Unlayered rules win over Tailwind's utility layer.)
+   --------------------------------------------------------------------------------------------- */
+html.dark {
+  color-scheme: dark;
+
+  --color-gray-50: #171b23;
+  --color-gray-100: #1e232d;
+  --color-gray-200: #2b313d;
+  --color-gray-300: #3b4252;
+  --color-gray-400: #6b7385;
+  --color-gray-500: #9199a9;
+  --color-gray-600: #aeb5c2;
+  --color-gray-700: #c8cdd7;
+  --color-gray-800: #dde1e8;
+  --color-gray-900: #f1f3f6;
+
+  --color-indigo-50: #1c1f3d;
+  --color-indigo-100: #262a59;
+  --color-indigo-200: #363c7e;
+  --color-emerald-50: #0f2a21;
+  --color-emerald-100: #12382b;
+  --color-emerald-200: #1b4e3c;
+  --color-emerald-300: #23664e;
+  --color-amber-50: #2c230f;
+  --color-amber-100: #3b2f12;
+  --color-amber-200: #5a4616;
+  --color-rose-50: #331b20;
+  --color-rose-100: #43212a;
+  --color-rose-200: #5d2b38;
+  --color-violet-50: #251c3d;
+  --color-sky-50: #10273b;
+}
+
+html.dark body {
+  background: #0c0e13;
+  color: #e5e7eb;
+}
+
+/* Cards and bars: white → dark surface. */
+html.dark .bg-white {
+  background-color: #12151c;
+}
+html.dark .bg-white\/95 {
+  background-color: rgb(18 21 28 / 0.95);
+}
+html.dark .bg-white\/80 {
+  background-color: rgb(30 35 45 / 0.8);
+}
+
+/* Solid "dark" buttons (bg-gray-900 + white text) would turn light with the inverted grays. */
+html.dark .bg-gray-900 {
+  background-color: #4f46e5;
+}
+
+/* Accent text that's too dark on a dark background → light shade of the same hue. */
+html.dark .text-indigo-600,
+html.dark .text-indigo-700,
+html.dark .text-indigo-800,
+html.dark .text-indigo-900,
+html.dark .hover\:text-indigo-700:hover,
+html.dark .hover\:text-indigo-800:hover {
+  color: #a5b4fc;
+}
+html.dark .text-emerald-700,
+html.dark .text-emerald-800 {
+  color: #6ee7b7;
+}
+html.dark .text-amber-600,
+html.dark .text-amber-700,
+html.dark .text-amber-800,
+html.dark .text-amber-900 {
+  color: #fcd34d;
+}
+html.dark .text-rose-600,
+html.dark .text-rose-700,
+html.dark .text-rose-800 {
+  color: #fda4af;
+}
+html.dark .text-violet-700 {
+  color: #c4b5fd;
+}
+html.dark .text-sky-700 {
+  color: #7dd3fc;
 }

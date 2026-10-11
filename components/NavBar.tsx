@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ThemeToggle } from "./ThemeToggle";
 
 const NAV = [
   { href: "/dashboard", label: "Dashboard", short: "Startups", icon: "M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" },
@@ -32,6 +33,9 @@ export function NavBar() {
                 {n.label}
               </Link>
             ))}
+          <div className="ml-auto">
+            <ThemeToggle />
+          </div>
         </nav>
       </header>
 
