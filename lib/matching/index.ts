@@ -57,9 +57,23 @@ function parseYears(text: string): number | null {
   return m ? parseInt(m[1], 10) : null;
 }
 
+/** "0-1 years", "Fresher", "Any" etc. in a job's stated experience. (Word bounds so "10 years" / "company" don't count.) */
+const FRESHER_EXP = /\bintern|\bfresher|new grad|\b0\b|\bany\b/i;
+
+export type JobLevel = "fresher" | "junior" | "experienced" | "unknown";
+
+/** Experience a job asks for, independent of the candidate (used by the Experience filter). */
+export function jobLevel(title: string, minExperience: string | null, description: string | null): JobLevel {
+  if (JUNIOR.test(title) || (minExperience && FRESHER_EXP.test(minExperience))) return "fresher";
+  if (SENIOR.test(title)) return "experienced";
+  const yrs = parseYears(minExperience ?? "") ?? parseYears(description ?? "");
+  if (yrs === null) return "unknown";
+  return yrs <= 1 ? "fresher" : yrs <= 3 ? "junior" : "experienced";
+}
+
 export function experienceMatch(title: string, minExperience: string | null, description: string | null, profile: CandidateProfile): JobMatch["experience_match"] {
   const have = profile.tech_experience_years ?? 0;
-  if (JUNIOR.test(title) || (minExperience && /intern|fresher|new grad|0\b|any/i.test(minExperience))) {
+  if (JUNIOR.test(title) || (minExperience && FRESHER_EXP.test(minExperience))) {
     return { level: "fits", label: "Fresher / junior friendly", points: 10 };
   }
   if (SENIOR.test(title) && have < 3) {

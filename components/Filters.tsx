@@ -22,6 +22,7 @@ export interface FilterState {
   funding: string[]; // funded_30 | funded_90 | funded_180
   age: string[]; // new | early | growing | established
   roles: string[]; // job-role categories; empty = all roles
+  levels?: string[]; // experience a job asks for: fresher | junior | experienced | unknown; empty = any
   types?: string[]; // startup types ("AI", "HealthTech", …); empty = all
   hiringOnly: boolean;
   matchingOnly: boolean;
@@ -45,10 +46,19 @@ export const DEFAULT_FILTERS: FilterState = {
 
 const FUNDING_RANK: Record<string, number> = { funded_30: 1, funded_90: 2, funded_180: 3 };
 
-/** With a role filter, each startup keeps only jobs in those roles (counts and best match follow). */
-function restrictToRoles(s: StartupView, roles: string[]): StartupView {
-  if (!roles.length) return s;
-  const jobs = s.jobs.filter((j) => j.role_categories.some((c) => roles.includes(c)));
+export const EXPERIENCE_LEVELS = [
+  ["fresher", "Fresher (0–1 yr)", "Internships, entry-level, or 0–1 years asked"],
+  ["junior", "2–3 yrs", "Asks for 2–3 years of experience"],
+  ["experienced", "4+ yrs / senior", "Senior titles or 4+ years asked"],
+  ["unknown", "Not stated", "The job doesn't say how much experience it needs"],
+] as const;
+
+/** With a role or experience filter, each startup keeps only matching jobs (counts and best match follow). */
+function restrictJobs(s: StartupView, roles: string[], levels: string[]): StartupView {
+  if (!roles.length && !levels.length) return s;
+  const jobs = s.jobs.filter(
+    (j) => (!roles.length || j.role_categories.some((c) => roles.includes(c))) && (!levels.length || levels.includes(j.experience_level))
+  );
   const relevant = jobs.filter((j) => j.match.relevance === "strong" || j.match.relevance === "potential");
   return {
     ...s,
@@ -61,8 +71,9 @@ function restrictToRoles(s: StartupView, roles: string[]): StartupView {
 
 export function applyFilters(list: StartupView[], f: FilterState): StartupView[] {
   const roles = f.roles ?? [];
-  const out = list.map((s) => restrictToRoles(s, roles)).filter((s) => {
-    if (roles.length && s.jobs.length === 0) return false;
+  const levels = f.levels ?? [];
+  const out = list.map((s) => restrictJobs(s, roles, levels)).filter((s) => {
+    if ((roles.length || levels.length) && s.jobs.length === 0) return false;
     if (f.view === "today" && !s.is_fresh) return false;
     if (f.locations.length && !s.location_tags.some((t) => f.locations.includes(t))) return false;
     const types = f.types ?? [];
@@ -147,9 +158,11 @@ function toggle(list: string[], v: string) {
 
 export function Filters({ f, set, defaults = DEFAULT_FILTERS }: { f: FilterState; set: (f: FilterState) => void; defaults?: FilterState }) {
   const roles = f.roles ?? [];
+  const levels = f.levels ?? [];
   const aiActive = [f.ai.ai, f.ai.nonAi, f.ai.unknown].filter((x) => !x).length;
   return (
-    <aside className="space-y-3 rounded-xl border border-gray-200 bg-white p-4 text-sm lg:sticky lg:top-4">
+    // Scrolls on its own when taller than the screen, so every group stays reachable.
+    <aside className="scroll-thin max-h-[70vh] space-y-3 overflow-y-auto overscroll-contain rounded-xl border border-gray-200 bg-white p-4 text-sm lg:sticky lg:top-4 lg:max-h-[calc(100dvh-2rem)]">
       <input
         value={f.search}
         onChange={(e) => set({ ...f, search: e.target.value })}
@@ -161,6 +174,18 @@ export function Filters({ f, set, defaults = DEFAULT_FILTERS }: { f: FilterState
         <div className="flex flex-wrap gap-1.5">
           {ROLE_CATEGORIES.map((r) => (
             <Pill key={r} label={r} on={roles.includes(r)} onClick={() => set({ ...f, roles: toggle(roles, r) })} />
+          ))}
+        </div>
+      </Group>
+
+      <Group
+        title="Experience"
+        hint={levels.length ? "Cards show only jobs at these levels" : "Pick Fresher to see entry-level jobs only"}
+        active={levels.length}
+      >
+        <div className="flex flex-wrap gap-1.5">
+          {EXPERIENCE_LEVELS.map(([k, l, hint]) => (
+            <Pill key={k} label={l} title={hint} on={levels.includes(k)} onClick={() => set({ ...f, levels: toggle(levels, k) })} />
           ))}
         </div>
       </Group>

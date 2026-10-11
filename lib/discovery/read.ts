@@ -2,7 +2,7 @@
 // so editing the profile on the Settings page immediately changes scores.
 import { query } from "@/lib/database";
 import type { AppUser } from "@/lib/users";
-import { matchJob } from "@/lib/matching";
+import { jobLevel, matchJob } from "@/lib/matching";
 import { candidateSkillSet } from "@/lib/matching/skills";
 import { companyLocationTags, locationTags } from "@/lib/jobs/location";
 import { ageBucket, fundingStatus } from "@/lib/funding";
@@ -125,6 +125,7 @@ export async function loadStartups(user: AppUser, opts: { id?: number; slim?: bo
       is_active: j.is_active,
       location_tags: tags,
       role_categories: roles,
+      experience_level: jobLevel(j.job_title, j.min_experience, j.description),
       match: matchJob(
         {
           job_title: j.job_title,

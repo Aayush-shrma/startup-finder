@@ -124,6 +124,8 @@ export interface JobView {
   is_active: boolean;
   location_tags: string[];
   role_categories: string[];
+  /** Experience the job asks for: fresher (0–1 yr) | junior (2–3) | experienced (4+) | unknown. */
+  experience_level: "fresher" | "junior" | "experienced" | "unknown";
   match: JobMatch;
 }
 

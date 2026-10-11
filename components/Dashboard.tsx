@@ -142,7 +142,7 @@ export function Dashboard() {
   }
 
   const activeFilters =
-    (f.roles ?? []).length + (f.types ?? []).length + f.funding.length + f.age.length + (f.emailOnly ? 1 : 0) + (f.matchingOnly ? 1 : 0) + (f.search ? 1 : 0);
+    (f.roles ?? []).length + (f.levels ?? []).length + (f.types ?? []).length + f.funding.length + f.age.length + (f.emailOnly ? 1 : 0) + (f.matchingOnly ? 1 : 0) + (f.search ? 1 : 0);
 
   const lastRunLabel = lastRunAt ? new Date(lastRunAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : null;
   const freshCount = (startups ?? []).filter((s) => s.is_fresh).length;

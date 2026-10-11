@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { normalizeName, domainOf } from "@/lib/deduplication";
 import { parseRemote, locationTags } from "@/lib/jobs/location";
-import { matchJob } from "@/lib/matching";
+import { jobLevel, matchJob } from "@/lib/matching";
 import { classifyStartup } from "@/lib/classification";
 import { parseFundingHeadline, fundingStatus, isNewStartup } from "@/lib/funding";
 import { generateQueries } from "@/lib/discovery/queries";
@@ -86,6 +86,27 @@ t("AI intern fits", () => {
 t("skills not in profile are never 'matched'", () => {
   const m = matchJob({ ...base, job_title: "Software Engineer", skills: ["Java", "Kubernetes"] }, profile);
   assert.deepEqual(m.matched_skills, []);
+});
+t("'10+ years' is not mistaken for fresher", () => {
+  const m = matchJob({ ...base, job_title: "Software Engineer", min_experience: "10+ years" }, profile);
+  assert.equal(m.experience_match.level, "too_senior");
+  assert.equal(jobLevel("Software Engineer", "10+ years", null), "experienced");
+});
+
+console.log("experience level");
+t("intern / fresher titles", () => {
+  assert.equal(jobLevel("Software Engineering Intern", null, null), "fresher");
+  assert.equal(jobLevel("Backend Developer", "0-1 years", null), "fresher");
+  assert.equal(jobLevel("Backend Developer", "Freshers welcome", null), "fresher");
+});
+t("years asked", () => {
+  assert.equal(jobLevel("Backend Developer", "1+ years", null), "fresher");
+  assert.equal(jobLevel("Backend Developer", "2-4 years", null), "junior");
+  assert.equal(jobLevel("Backend Developer", null, "You have 5+ years of experience with Node"), "experienced");
+});
+t("senior titles and unknown", () => {
+  assert.equal(jobLevel("Senior Backend Engineer", null, null), "experienced");
+  assert.equal(jobLevel("Backend Engineer", null, null), "unknown");
 });
 
 console.log("classification");
