@@ -3,6 +3,7 @@
 import { NextResponse } from "next/server";
 import { extractText, getDocumentProxy } from "unpdf";
 import { parseResumeText } from "@/lib/resume/parse";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,6 +11,8 @@ export const dynamic = "force-dynamic";
 const MAX_BYTES = 5 * 1024 * 1024;
 
 export async function POST(req: Request) {
+  const limited = rateLimit(req, "resume");
+  if (limited) return limited;
   let form: FormData;
   try {
     form = await req.formData();

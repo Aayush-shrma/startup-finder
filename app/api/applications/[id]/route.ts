@@ -2,11 +2,14 @@ import { NextResponse } from "next/server";
 import { query } from "@/lib/database";
 import { APPLICATION_STATUSES } from "@/lib/types";
 import { currentUser } from "@/lib/users";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
 /** PATCH { status?, notes?, applied_at?, application_url? } */
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const limited = rateLimit(req, "write");
+  if (limited) return limited;
   const user = await currentUser();
   if (!user) return NextResponse.json({ error: "no_profile" }, { status: 401 });
   const { id } = await params;
@@ -41,7 +44,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   return NextResponse.json({ application: rows[0] });
 }
 
-export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const limited = rateLimit(req, "write");
+  if (limited) return limited;
   const user = await currentUser();
   if (!user) return NextResponse.json({ error: "no_profile" }, { status: 401 });
   const { id } = await params;

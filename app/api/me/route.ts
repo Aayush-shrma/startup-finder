@@ -7,6 +7,7 @@ import { candidateSkillSet } from "@/lib/matching/skills";
 import type { CandidateProfile } from "@/lib/types";
 import { LOCATION_OPTIONS } from "@/lib/types";
 import { STARTUP_TYPE_OPTIONS } from "@/lib/resume/parse";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +56,8 @@ export async function POST(req: Request) {
   const profile = toProfile(await req.json());
   if (typeof profile === "string") return NextResponse.json({ error: profile }, { status: 400 });
   const existing = await currentUser();
+  const limited = rateLimit(req, existing ? "updateProfile" : "createProfile");
+  if (limited) return limited;
   if (existing) {
     await updateUserProfile(existing.id, profile);
     return NextResponse.json({ ok: true, updated: true });
@@ -68,6 +71,8 @@ export async function POST(req: Request) {
 export async function PUT(req: Request) {
   const user = await currentUser();
   if (!user) return NextResponse.json({ error: "No profile yet." }, { status: 401 });
+  const limited = rateLimit(req, "updateProfile");
+  if (limited) return limited;
   const profile = toProfile(await req.json(), user.profile);
   if (typeof profile === "string") return NextResponse.json({ error: profile }, { status: 400 });
   await updateUserProfile(user.id, profile);

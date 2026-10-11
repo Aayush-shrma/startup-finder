@@ -29,26 +29,82 @@ export async function freshWindowStart(): Promise<Date> {
 const iso = (d: any) => (d ? new Date(d).toISOString() : null);
 const dateOnly = (d: any) => (d ? new Date(d).toISOString().slice(0, 10) : null);
 
-export async function loadStartups(user: AppUser, opts: { id?: number } = {}): Promise<StartupView[]> {
+// ---------- shared data cache ----------
+// Startups and jobs are the same for every user and only change when a discovery run finishes,
+// so they're loaded once and kept in memory. Per-user parts (match scores, applications, pins)
+// are still computed on every request. The cache is cleared when a run finishes, and expires
+// after a few minutes as a safety net (e.g. a run made from the CLI in another process).
+interface SharedJob {
+  row: any;
+  tags: string[];
+  roles: string[];
+}
+interface SharedData {
+  startups: any[];
+  jobsByStartup: Map<number, SharedJob[]>;
+  fresh: Date;
+}
+const CACHE_MS = 10 * 60_000;
+const cache = globalThis as unknown as { __sfShared?: Promise<SharedData>; __sfSharedAt?: number };
+
+export function invalidateSharedData() {
+  cache.__sfShared = undefined;
+}
+
+async function loadShared(): Promise<SharedData> {
+  const [startups, jobs, fresh] = await Promise.all([
+    query("SELECT * FROM startups ORDER BY id"),
+    query("SELECT * FROM jobs WHERE is_active ORDER BY id"),
+    freshWindowStart(),
+  ]);
+  const jobsByStartup = new Map<number, SharedJob[]>();
+  for (const j of jobs) {
+    const shared: SharedJob = {
+      row: j,
+      tags: locationTags(j.location, j.remote, j.remote_scope),
+      // Title, plus the short role label some sources give (YC: "Engineering · Machine learning").
+      roles: roleCategories(j.job_title, j.description && j.description.length < 80 ? j.description : ""),
+    };
+    if (!jobsByStartup.has(j.startup_id)) jobsByStartup.set(j.startup_id, []);
+    jobsByStartup.get(j.startup_id)!.push(shared);
+  }
+  return { startups, jobsByStartup, fresh };
+}
+
+function sharedData(): Promise<SharedData> {
+  if (!cache.__sfShared || Date.now() - (cache.__sfSharedAt ?? 0) > CACHE_MS) {
+    cache.__sfSharedAt = Date.now();
+    cache.__sfShared = loadShared().catch((e) => {
+      cache.__sfShared = undefined;
+      throw e;
+    });
+  }
+  return cache.__sfShared;
+}
+
+/**
+ * @param opts.id    one startup (details page)
+ * @param opts.slim  dashboard list: leave out fields the cards don't show, to keep the response small
+ */
+export async function loadStartups(user: AppUser, opts: { id?: number; slim?: boolean } = {}): Promise<StartupView[]> {
   const profile = user.profile;
   const owned = candidateSkillSet(profile);
   const pinned = new Set(user.pinned ?? []);
-  const where = opts.id ? "WHERE id = $1" : "";
-  const startups = await query(`SELECT * FROM startups ${where} ORDER BY id`, opts.id ? [opts.id] : []);
-  const jobs = await query(
-    `SELECT * FROM jobs WHERE is_active ${opts.id ? "AND startup_id = $1" : ""} ORDER BY id`,
-    opts.id ? [opts.id] : []
-  );
-  const apps = await query<any>(
-    `SELECT a.*, j.job_title FROM applications a LEFT JOIN jobs j ON j.id = a.job_id
-     WHERE a.user_id = $1 ${opts.id ? "AND a.startup_id = $2" : ""}`,
-    opts.id ? [user.id, opts.id] : [user.id]
-  );
-  const today = await freshWindowStart();
+  const [data, apps] = await Promise.all([
+    sharedData(),
+    query<any>(
+      `SELECT a.*, j.job_title FROM applications a LEFT JOIN jobs j ON j.id = a.job_id
+       WHERE a.user_id = $1 ${opts.id ? "AND a.startup_id = $2" : ""}`,
+      opts.id ? [user.id, opts.id] : [user.id]
+    ),
+  ]);
+  const startups = opts.id ? data.startups.filter((s) => s.id === opts.id) : data.startups;
+  const today = data.fresh;
+  const slim = !!opts.slim;
 
   const jobsBy = new Map<number, JobView[]>();
-  for (const j of jobs) {
-    const tags = locationTags(j.location, j.remote, j.remote_scope);
+  for (const s of startups) {
+    for (const { row: j, tags, roles } of data.jobsByStartup.get(s.id) ?? []) {
     const view: JobView = {
       id: j.id,
       startup_id: j.startup_id,
@@ -62,14 +118,13 @@ export async function loadStartups(user: AppUser, opts: { id?: number } = {}): P
       posted_date: j.posted_date,
       min_experience: j.min_experience,
       salary: j.salary,
-      skills: j.skills ?? [],
+      skills: slim ? [] : j.skills ?? [],
       source: j.source,
       source_url: j.source_url,
       discovered_at: iso(j.discovered_at)!,
       is_active: j.is_active,
       location_tags: tags,
-      // Title, plus the short role label some sources give (YC: "Engineering · Machine learning").
-      role_categories: roleCategories(j.job_title, j.description && j.description.length < 80 ? j.description : ""),
+      role_categories: roles,
       match: matchJob(
         {
           job_title: j.job_title,
@@ -86,6 +141,7 @@ export async function loadStartups(user: AppUser, opts: { id?: number } = {}): P
     };
     if (!jobsBy.has(j.startup_id)) jobsBy.set(j.startup_id, []);
     jobsBy.get(j.startup_id)!.push(view);
+    }
   }
   const appsBy = new Map<number, ApplicationView[]>();
   for (const a of apps) {
@@ -119,7 +175,8 @@ export async function loadStartups(user: AppUser, opts: { id?: number } = {}): P
       domain: s.domain,
       linkedin_url: s.linkedin_url,
       careers_url: s.careers_url,
-      description: s.description,
+      // Cards show two lines of description; the details page gets the full text.
+      description: slim && s.description && s.description.length > 300 ? s.description.slice(0, 297) + "…" : s.description,
       location: s.location,
       remote_available: s.remote_available,
       industry: s.industry,
@@ -139,8 +196,8 @@ export async function loadStartups(user: AppUser, opts: { id?: number } = {}): P
       funding_source_url: s.funding_source_url,
       source: s.source,
       source_url: s.source_url,
-      sources_seen: s.sources_seen ?? [],
-      field_sources: s.field_sources ?? {},
+      sources_seen: slim ? [] : s.sources_seen ?? [],
+      field_sources: slim ? {} : s.field_sources ?? {},
       first_discovered_at: iso(s.first_discovered_at)!,
       last_seen_at: iso(s.last_seen_at)!,
       last_updated_at: iso(s.last_updated_at)!,

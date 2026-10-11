@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/database";
 import { currentUser } from "@/lib/users";
+import { rateLimit } from "@/lib/rate-limit";
 import { APPLICATION_STATUSES } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: Request) {
+  const limited = rateLimit(req, "read");
+  if (limited) return limited;
   const user = await currentUser();
   if (!user) return NextResponse.json({ error: "no_profile" }, { status: 401 });
   const rows = await query(
@@ -20,6 +23,8 @@ export async function GET() {
 
 /** POST { startup_id, job_id?, status? } — creates or updates the user's (startup, job) row. Used by "Save". */
 export async function POST(req: Request) {
+  const limited = rateLimit(req, "write");
+  if (limited) return limited;
   const user = await currentUser();
   if (!user) return NextResponse.json({ error: "no_profile" }, { status: 401 });
   const b = await req.json();

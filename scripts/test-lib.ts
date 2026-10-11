@@ -10,6 +10,7 @@ import { generateQueries } from "@/lib/discovery/queries";
 import { roleCategories } from "@/lib/jobs/roles";
 import { classifyEmail, contactLink, extractEmails } from "@/lib/emails";
 import { parseResumeText } from "@/lib/resume/parse";
+import { rateLimit } from "@/lib/rate-limit";
 import { careersLink, jobPostingsFromJsonLd } from "@/sources/company";
 import type { CandidateProfile } from "@/lib/types";
 
@@ -213,6 +214,16 @@ t("doesn't invent Go/TypeScript from short words", () => {
   assert.ok(!r.skills.includes("Go") && !r.skills.includes("TypeScript"));
 });
 t("AI role inferred from LLM skills", () => assert.ok(parseResumeText("Built agents with LangGraph and Groq LLM.").roles.includes("AI Engineer")));
+
+console.log("rate limiting");
+t("6th new profile from the same IP within an hour is refused; other IPs aren't affected", () => {
+  const req = (ip: string) => new Request("http://x/api/me", { method: "POST", headers: { "x-forwarded-for": `${ip}, 10.0.0.1` } });
+  for (let i = 0; i < 5; i++) assert.equal(rateLimit(req("203.0.113.7"), "createProfile"), null);
+  const blocked = rateLimit(req("203.0.113.7"), "createProfile");
+  assert.equal(blocked?.status, 429);
+  assert.ok(Number(blocked?.headers.get("Retry-After")) > 0);
+  assert.equal(rateLimit(req("198.51.100.9"), "createProfile"), null);
+});
 
 console.log("queries");
 t("queries come from the profile", () => {

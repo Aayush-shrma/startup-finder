@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/database";
 import { currentUser } from "@/lib/users";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
 /** PATCH { show_again: boolean } — pin/unpin a startup for the current user. */
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const limited = rateLimit(req, "write");
+  if (limited) return limited;
   const user = await currentUser();
   if (!user) return NextResponse.json({ error: "no_profile" }, { status: 401 });
   const { id } = await params;

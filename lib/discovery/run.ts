@@ -2,6 +2,7 @@
 import { getDiscoveryProfile, query } from "@/lib/database";
 import { generateQueries } from "./queries";
 import { upsertStartup } from "./store";
+import { invalidateSharedData } from "./read";
 import { ENRICHERS, SOURCES } from "@/sources";
 import type { DiscoveryContext, StartupSource } from "@/lib/types";
 
@@ -134,6 +135,7 @@ export async function runDiscovery(onLog?: (m: string) => void): Promise<RunStat
   } finally {
     s.running = false;
     s.finishedAt = new Date().toISOString();
+    invalidateSharedData(); // dashboards pick up the new startups/jobs on their next load
   }
   return s;
 }

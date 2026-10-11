@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { query, ready } from "@/lib/database";
 import { runStatus, startDiscovery } from "@/lib/discovery/run";
 import { currentUser } from "@/lib/users";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,8 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const limited = rateLimit(req, "discover");
+  if (limited) return limited;
   try {
     await ready();
   } catch (e) {
