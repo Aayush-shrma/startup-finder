@@ -39,8 +39,12 @@ function toProfile(body: any, base: CandidateProfile = GENERIC_PROFILE): Candida
     preferred_locations: locations,
     remote_preference: locations.some((l) => l.startsWith("Remote")) ? "remote_ok" : "onsite",
     preferred_startup_types: strArr(body.preferred_startup_types, 12).filter((t) => STARTUP_TYPE_OPTIONS.includes(t)),
+    explorer: false, // saving real skills ends "explore" mode
   };
 }
+
+/** "Skip for now": a profile with general software roles and no skills, for browsing funded startups. */
+const EXPLORER_PROFILE: CandidateProfile = { ...GENERIC_PROFILE, explorer: true };
 
 export async function GET() {
   const user = await currentUser();
@@ -53,9 +57,19 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const profile = toProfile(await req.json());
-  if (typeof profile === "string") return NextResponse.json({ error: profile }, { status: 400 });
+  const body = await req.json();
   const existing = await currentUser();
+  if (body.explore === true) {
+    if (existing) return NextResponse.json({ ok: true, existing: true }); // never overwrite a real profile
+    const limited = rateLimit(req, "createProfile");
+    if (limited) return limited;
+    const user = await createUser(EXPLORER_PROFILE);
+    const res = NextResponse.json({ ok: true, created: true });
+    res.cookies.set(USER_COOKIE, user.token, cookieOptions);
+    return res;
+  }
+  const profile = toProfile(body);
+  if (typeof profile === "string") return NextResponse.json({ error: profile }, { status: 400 });
   const limited = rateLimit(req, existing ? "updateProfile" : "createProfile");
   if (limited) return limited;
   if (existing) {

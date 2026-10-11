@@ -78,6 +78,8 @@ function Onboarding() {
   const router = useRouter();
   const params = useSearchParams();
   const [editing, setEditing] = useState(false);
+  const [explorer, setExplorer] = useState(false); // skipped earlier; now adding skills for the first time
+  const [skipping, setSkipping] = useState(false);
   const [step, setStep] = useState(1);
   const [skills, setSkills] = useState<string[]>([]);
   const [roles, setRoles] = useState<string[]>([]);
@@ -98,6 +100,10 @@ function Onboarding() {
         if (!d?.user) return;
         const p = d.user.profile;
         setEditing(true);
+        if (p.explorer) {
+          setExplorer(true); // keep the blank form: their "profile" is only generic defaults
+          return;
+        }
         setName(p.name ?? "");
         setSkills([...new Set<string>([...(p.skills ?? []), ...(p.programming_languages ?? []), ...(p.frameworks ?? []), ...(p.databases ?? []), ...(p.ai_ml_skills ?? []), ...(p.libraries ?? []), ...(p.cloud_tools ?? [])])]);
         setRoles(p.target_roles ?? []);
@@ -125,6 +131,23 @@ function Onboarding() {
     setUpload({ state: "done", msg: `Found ${d.skills.length} skills and ${d.roles.length} likely roles. Check them below — remove anything that's wrong.` });
   }
 
+  /** No skills yet: browse recently funded startups now, add skills later. */
+  async function skip() {
+    setError(null);
+    setSkipping(true);
+    const res = await fetch("/api/me", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ explore: true }) });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setSkipping(false);
+      setError(d.error ?? "Couldn't continue. Please try again.");
+      return;
+    }
+    try {
+      localStorage.removeItem("dsf.filters.v1");
+    } catch {}
+    router.push("/dashboard?welcome=1");
+  }
+
   const toggle = (list: string[], v: string) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
 
   async function save() {
@@ -144,60 +167,30 @@ function Onboarding() {
     try {
       localStorage.removeItem("dsf.filters.v1"); // let the dashboard pick up the new preferences
     } catch {}
-    router.push(editing ? "/dashboard" : "/dashboard?welcome=1");
+    router.push(editing && !explorer ? "/dashboard" : "/dashboard?welcome=1");
   }
 
   const canNext = step === 1 ? skills.length > 0 : step === 2 ? roles.length > 0 : locations.length > 0;
 
   return (
     <div className="mx-auto max-w-2xl py-4">
-      {/* Always mounted so the hero's "Upload your resume" button works from any step. */}
       <input ref={fileRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} />
-      {editing ? (
+      {editing && !explorer ? (
         <div className="mb-6 text-center">
           <h1 className="text-2xl font-semibold text-gray-900">Edit your profile</h1>
           <p className="mt-1 text-sm text-gray-500">Changes update your matches immediately.</p>
         </div>
       ) : (
-        // First-time visitor: say what this is and give two clear ways to start.
-        <div className="mb-6 rounded-xl border border-indigo-100 bg-indigo-50/60 p-6 text-center">
-          <h1 className="text-2xl font-semibold text-gray-900 sm:text-3xl">Find startups that are hiring people like you</h1>
-          <p className="mx-auto mt-2 max-w-lg text-sm text-gray-600">
-            Tell us what you know. We check Y Combinator startups, recently funded companies and their careers pages every day, and show the jobs that fit you — with the reason for every match.
+        <div className="mb-6 text-center">
+          <h1 className="text-2xl font-semibold text-gray-900 sm:text-3xl">Find startups hiring people like you</h1>
+          <p className="mx-auto mt-2 max-w-md text-sm text-gray-500">
+            Add your skills once. We match you with jobs at YC and recently funded startups, and explain every match.
           </p>
-          <div className="mt-5 flex flex-col justify-center gap-2 sm:flex-row">
-            <button
-              type="button"
-              onClick={() => {
-                setStep(1);
-                fileRef.current?.click();
-              }}
-              className="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700"
-            >
-              📄 Upload your resume
+          {!explorer && (
+            <button type="button" onClick={skip} disabled={skipping} className="mt-3 text-sm font-medium text-indigo-600 hover:text-indigo-800 disabled:opacity-60">
+              {skipping ? "Opening…" : "No skills yet? Skip and explore recently funded startups →"}
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                setStep(1);
-                document.getElementById("skills-input")?.focus();
-              }}
-              className="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              Add skills manually
-            </button>
-          </div>
-          <ul className="mx-auto mt-5 grid max-w-xl gap-2 text-left text-xs text-gray-600 sm:grid-cols-3">
-            <li className="rounded-lg bg-white/80 px-3 py-2">
-              <b className="block text-gray-800">Free, no sign-up</b>Your profile is saved in this browser.
-            </li>
-            <li className="rounded-lg bg-white/80 px-3 py-2">
-              <b className="block text-gray-800">Matched to you</b>Every job scored on role, skills, location and experience.
-            </li>
-            <li className="rounded-lg bg-white/80 px-3 py-2">
-              <b className="block text-gray-800">Real openings</b>From YC, funding news and company careers pages.
-            </li>
-          </ul>
+          )}
           {params.get("link") === "invalid" && <p className="mt-3 text-sm text-rose-600">That private link isn't valid anymore. Set up a new profile below.</p>}
         </div>
       )}
@@ -214,15 +207,17 @@ function Onboarding() {
         {step === 1 && (
           <div className="space-y-5">
             <div>
-              <h2 className="font-semibold text-gray-900">Upload your resume (PDF)</h2>
-              <p className="text-sm text-gray-500">We read it once to pre-fill your skills. The file itself isn't saved.</p>
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
                 disabled={upload.state === "reading"}
-                className="mt-3 w-full rounded-lg border-2 border-dashed border-gray-300 px-4 py-6 text-sm text-gray-600 hover:border-indigo-400 hover:bg-indigo-50/40 disabled:opacity-60"
+                className="flex w-full flex-col items-center gap-1 rounded-lg border-2 border-dashed border-gray-300 px-4 py-6 text-sm text-gray-600 hover:border-indigo-400 hover:bg-indigo-50/40 disabled:opacity-60"
               >
-                {upload.state === "reading" ? "Reading your resume…" : "📄 Choose a PDF"}
+                <svg viewBox="0 0 24 24" className="h-6 w-6 text-indigo-500" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M12 16V4m0 0-4 4m4-4 4 4M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" />
+                </svg>
+                <span className="font-medium text-gray-800">{upload.state === "reading" ? "Reading your resume…" : "Upload your resume"}</span>
+                <span className="text-xs text-gray-400">PDF · we read it once to fill in your skills, the file isn't saved</span>
               </button>
               {upload.msg && <p className={`mt-2 text-sm ${upload.state === "error" ? "text-rose-600" : "text-emerald-700"}`}>{upload.msg}</p>}
             </div>
@@ -293,16 +288,22 @@ function Onboarding() {
         {error && <p className="mt-4 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
 
         <div className="mt-6 flex items-center justify-between">
-          <button type="button" onClick={() => setStep(step - 1)} disabled={step === 1} className="rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 disabled:invisible">
-            ← Back
-          </button>
+          {step === 1 && !editing ? (
+            <button type="button" onClick={skip} disabled={skipping} className="rounded-lg px-4 py-2 text-sm text-gray-500 hover:bg-gray-100 disabled:opacity-60">
+              Skip for now
+            </button>
+          ) : (
+            <button type="button" onClick={() => setStep(step - 1)} disabled={step === 1} className="rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 disabled:invisible">
+              ← Back
+            </button>
+          )}
           {step < 3 ? (
             <button type="button" disabled={!canNext} onClick={() => setStep(step + 1)} className="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-40">
               Next →
             </button>
           ) : (
             <button type="button" disabled={!canNext || saving} onClick={save} className="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-40">
-              {saving ? "Saving…" : editing ? "Save changes" : "Find my startups →"}
+              {saving ? "Saving…" : editing && !explorer ? "Save changes" : "Find my startups →"}
             </button>
           )}
         </div>

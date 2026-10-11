@@ -21,6 +21,8 @@ export interface CandidateProfile {
   remote_preference: string;
   /** e.g. ["AI", "HealthTech"]; empty = any. "AI" means is_ai startups; others are industries. */
   preferred_startup_types?: string[];
+  /** Skipped onboarding: browsing recently funded startups without their own skills yet. */
+  explorer?: boolean;
   [key: string]: unknown;
 }
 

@@ -27,6 +27,7 @@ export function Dashboard() {
   const [lastRunAt, setLastRunAt] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [name, setName] = useState<string | null>(null);
+  const [explorer, setExplorer] = useState(false);
   const [showFilters, setShowFilters] = useState(false); // phones: filters open on demand
   const poll = useRef<ReturnType<typeof setInterval> | null>(null);
   const filtersReady = useRef(false);
@@ -44,6 +45,7 @@ export function Dashboard() {
       setStartups(data.startups);
       setLastRunAt(data.lastRun?.started_at ?? null);
       setName((data.profile?.name as string) || null);
+      setExplorer(!!data.profile?.explorer);
       // First load: filters default to this user's preferences unless they've changed them before.
       if (!filtersReady.current) {
         filtersReady.current = true;
@@ -179,6 +181,20 @@ export function Dashboard() {
           </li>
         </ol>
       </section>
+
+      {explorer && (
+        <div className="flex flex-col gap-3 rounded-lg border border-indigo-200 bg-indigo-50 p-3 text-sm text-indigo-900 sm:flex-row sm:items-center sm:justify-between">
+          <span>
+            <b>Exploring recently funded startups.</b> Match scores use general software roles. Add your skills to see jobs that fit you.
+          </span>
+          <button
+            onClick={() => router.push("/onboarding")}
+            className="shrink-0 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700"
+          >
+            Add my skills
+          </button>
+        </div>
+      )}
 
       {notice && (
         <div className="flex items-start justify-between gap-3 rounded-lg border border-indigo-200 bg-indigo-50 p-3 text-sm text-indigo-900">

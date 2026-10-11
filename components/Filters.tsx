@@ -8,6 +8,8 @@ import type { CandidateProfile } from "@/lib/types";
 /** Default filters for a user: their locations and preferred startup types. */
 export function filtersForProfile(p: CandidateProfile | null | undefined): FilterState {
   if (!p) return DEFAULT_FILTERS;
+  // Skipped onboarding: recently funded startups, anywhere, newest funding first.
+  if (p.explorer) return { ...DEFAULT_FILTERS, view: "all", locations: [], funding: ["funded_180"], hiringOnly: false, sort: "funding" };
   const locs = (p.preferred_locations ?? []).filter((l) => (LOCATION_OPTIONS as readonly string[]).includes(l));
   // Someone who wants "Remote - India" should also see remote jobs whose region isn't stated.
   if (locs.includes("Remote - India") && !locs.includes("Remote")) locs.push("Remote");
