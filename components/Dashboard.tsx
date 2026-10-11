@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { applyFilters, DEFAULT_FILTERS, Filters, filtersForProfile, type FilterState } from "./Filters";
 import { StartupCard } from "./StartupCard";
 import { Summary } from "./Summary";
+import { GettingStarted } from "./GettingStarted";
 
 interface RunState {
   running: boolean;
@@ -124,6 +125,21 @@ export function Dashboard() {
   const shown = useMemo(() => applyFilters(startups ?? [], f), [startups, f]);
   const today = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
 
+  /** "Show my best match": all startups, best match first, then scroll to the top card. */
+  function showBest() {
+    setFilters({ ...f, view: "all", sort: "match", search: "" });
+    setTimeout(() => {
+      const card = document.querySelector("article");
+      if (!card) return;
+      card.scrollIntoView({ behavior: "smooth", block: "start" });
+      // Smooth scrolling can be interrupted (re-render, background tab) — make sure we arrive.
+      setTimeout(() => {
+        const top = card.getBoundingClientRect().top;
+        if (top > window.innerHeight * 0.5 || top < -50) card.scrollIntoView({ block: "start" });
+      }, 700);
+    }, 80);
+  }
+
   const lastRunLabel = lastRunAt ? new Date(lastRunAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : null;
   const freshCount = (startups ?? []).filter((s) => s.is_fresh).length;
 
@@ -180,6 +196,8 @@ export function Dashboard() {
         </div>
       )}
 
+      {startups && startups.length > 0 && <GettingStarted startups={startups} onShowBest={showBest} />}
+
       {startups && <Summary list={viewList} label={f.view === "today" ? `Found in the latest search${lastRunLabel ? ` (${lastRunLabel})` : ""}` : "All startups found so far"} />}
 
       <div className="grid gap-5 lg:grid-cols-[260px_1fr]">
@@ -221,8 +239,18 @@ export function Dashboard() {
           </div>
           {!startups && !error && <div className="text-sm text-gray-500">Loading…</div>}
           {startups && startups.length === 0 && (
-            <div className="rounded-lg border border-dashed border-gray-300 bg-white p-8 text-center text-sm text-gray-500">
-              No startups yet. Click <b>Find Startups Today</b> to run discovery.
+            <div className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center">
+              <h3 className="text-base font-semibold text-gray-900">{run?.running ? "Finding startups for you…" : "Find your first startups"}</h3>
+              <p className="mx-auto mt-1 max-w-md text-sm text-gray-500">
+                {run?.running
+                  ? "We're checking Y Combinator, funding news and careers pages. This takes about 3 minutes — results appear here automatically."
+                  : "Search Y Combinator, funding news and careers pages for startups hiring people with your skills."}
+              </p>
+              {!run?.running && (
+                <button onClick={() => findToday()} className="mt-4 rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700">
+                  🔎 Find startups now
+                </button>
+              )}
             </div>
           )}
           {startups && startups.length > 0 && shown.length === 0 && (

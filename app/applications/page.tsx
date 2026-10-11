@@ -94,8 +94,25 @@ export default function ApplicationsPage() {
           <tbody>
             {rows && shown.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-3 py-6 text-center text-gray-500">
-                  Nothing tracked yet. Use “Save” or the status menu next to a job on the dashboard.
+                <td colSpan={7} className="px-3 py-10 text-center">
+                  {rows.length === 0 ? (
+                    <>
+                      <div className="text-base font-semibold text-gray-900">Start your shortlist</div>
+                      <p className="mx-auto mt-1 max-w-md text-sm text-gray-500">
+                        Save startups you like and track each application here — Saved, Applied, Interview, Offer.
+                      </p>
+                      <Link href="/dashboard" className="mt-4 inline-block rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700">
+                        Browse my matches
+                      </Link>
+                    </>
+                  ) : (
+                    <span className="text-sm text-gray-500">
+                      No applications with this status.{" "}
+                      <button onClick={() => setFilter("all")} className="text-indigo-600 hover:underline">
+                        Show all
+                      </button>
+                    </span>
+                  )}
                 </td>
               </tr>
             )}

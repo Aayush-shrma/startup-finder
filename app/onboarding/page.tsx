@@ -22,7 +22,7 @@ function Pill({ label, on, onClick }: { label: string; on: boolean; onClick: () 
   );
 }
 
-function ChipInput({ values, onChange, suggestions, placeholder }: { values: string[]; onChange: (v: string[]) => void; suggestions: string[]; placeholder: string }) {
+function ChipInput({ id, values, onChange, suggestions, placeholder }: { id?: string; values: string[]; onChange: (v: string[]) => void; suggestions: string[]; placeholder: string }) {
   const [text, setText] = useState("");
   const matches = useMemo(
     () => (text.trim() ? suggestions.filter((s) => s.toLowerCase().includes(text.trim().toLowerCase()) && !values.includes(s)).slice(0, 6) : []),
@@ -47,6 +47,7 @@ function ChipInput({ values, onChange, suggestions, placeholder }: { values: str
       </div>
       <div className="relative mt-2">
         <input
+          id={id}
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
@@ -150,13 +151,56 @@ function Onboarding() {
 
   return (
     <div className="mx-auto max-w-2xl py-4">
-      <div className="mb-6 text-center">
-        <h1 className="text-2xl font-semibold text-gray-900">{editing ? "Edit your profile" : "Find startups hiring for you"}</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          {editing ? "Changes update your matches immediately." : "Three quick steps. We match every open job at Y Combinator and recently funded startups against your profile."}
-        </p>
-        {params.get("link") === "invalid" && <p className="mt-2 text-sm text-rose-600">That private link isn't valid anymore. Set up a new profile below.</p>}
-      </div>
+      {/* Always mounted so the hero's "Upload your resume" button works from any step. */}
+      <input ref={fileRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} />
+      {editing ? (
+        <div className="mb-6 text-center">
+          <h1 className="text-2xl font-semibold text-gray-900">Edit your profile</h1>
+          <p className="mt-1 text-sm text-gray-500">Changes update your matches immediately.</p>
+        </div>
+      ) : (
+        // First-time visitor: say what this is and give two clear ways to start.
+        <div className="mb-6 rounded-xl border border-indigo-100 bg-indigo-50/60 p-6 text-center">
+          <h1 className="text-2xl font-semibold text-gray-900 sm:text-3xl">Find startups that are hiring people like you</h1>
+          <p className="mx-auto mt-2 max-w-lg text-sm text-gray-600">
+            Tell us what you know. We check Y Combinator startups, recently funded companies and their careers pages every day, and show the jobs that fit you — with the reason for every match.
+          </p>
+          <div className="mt-5 flex flex-col justify-center gap-2 sm:flex-row">
+            <button
+              type="button"
+              onClick={() => {
+                setStep(1);
+                fileRef.current?.click();
+              }}
+              className="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700"
+            >
+              📄 Upload your resume
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setStep(1);
+                document.getElementById("skills-input")?.focus();
+              }}
+              className="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Add skills manually
+            </button>
+          </div>
+          <ul className="mx-auto mt-5 grid max-w-xl gap-2 text-left text-xs text-gray-600 sm:grid-cols-3">
+            <li className="rounded-lg bg-white/80 px-3 py-2">
+              <b className="block text-gray-800">Free, no sign-up</b>Your profile is saved in this browser.
+            </li>
+            <li className="rounded-lg bg-white/80 px-3 py-2">
+              <b className="block text-gray-800">Matched to you</b>Every job scored on role, skills, location and experience.
+            </li>
+            <li className="rounded-lg bg-white/80 px-3 py-2">
+              <b className="block text-gray-800">Real openings</b>From YC, funding news and company careers pages.
+            </li>
+          </ul>
+          {params.get("link") === "invalid" && <p className="mt-3 text-sm text-rose-600">That private link isn't valid anymore. Set up a new profile below.</p>}
+        </div>
+      )}
 
       <ol className="mb-5 flex gap-2 text-xs">
         {["Your skills", "Roles you want", "Where & what"].map((label, i) => (
@@ -172,7 +216,6 @@ function Onboarding() {
             <div>
               <h2 className="font-semibold text-gray-900">Upload your resume (PDF)</h2>
               <p className="text-sm text-gray-500">We read it once to pre-fill your skills. The file itself isn't saved.</p>
-              <input ref={fileRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} />
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
@@ -189,7 +232,7 @@ function Onboarding() {
             <div>
               <h2 className="font-semibold text-gray-900">Your skills</h2>
               <p className="mb-2 text-sm text-gray-500">Languages, frameworks, tools. Matching only counts what's listed here.</p>
-              <ChipInput values={skills} onChange={setSkills} suggestions={ALL_SKILLS} placeholder="e.g. Python, React, SQL…" />
+              <ChipInput id="skills-input" values={skills} onChange={setSkills} suggestions={ALL_SKILLS} placeholder="e.g. Python, React, SQL…" />
             </div>
           </div>
         )}

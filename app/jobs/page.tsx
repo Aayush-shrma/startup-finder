@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import type { StartupView } from "@/lib/types";
+import Link from "next/link";
 import { JobCard } from "@/components/JobCard";
 import { ROLE_CATEGORIES } from "@/lib/jobs/roles";
 
@@ -48,7 +49,40 @@ export default function JobsPage() {
         <span className="text-sm text-gray-500">{jobs.length} jobs · click a title to see why it matches</span>
       </div>
       <div className="rounded-lg border border-gray-200 bg-white px-4 py-2">
-        {jobs.length === 0 && <p className="py-4 text-sm text-gray-500">No jobs yet — run discovery from the dashboard.</p>}
+        {jobs.length === 0 && (
+          <div className="py-8 text-center">
+            {startups.length === 0 ? (
+              <>
+                <div className="text-base font-semibold text-gray-900">No jobs yet</div>
+                <p className="mt-1 text-sm text-gray-500">Run a search from the dashboard and matching jobs show up here.</p>
+                <Link href="/dashboard" className="mt-4 inline-block rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700">
+                  Go to dashboard
+                </Link>
+              </>
+            ) : (
+              <>
+                <div className="text-base font-semibold text-gray-900">No jobs match these filters</div>
+                <div className="mt-3 flex justify-center gap-2">
+                  {loc !== "any" && (
+                    <button onClick={() => setLoc("any")} className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50">
+                      Any location
+                    </button>
+                  )}
+                  {role !== "all" && (
+                    <button onClick={() => setRole("all")} className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50">
+                      All roles
+                    </button>
+                  )}
+                  {onlyRelevant && (
+                    <button onClick={() => setOnlyRelevant(false)} className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50">
+                      Include weaker matches
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        )}
         {jobs.map(({ j, s }) => (
           <JobCard key={j.id} job={j} showCompany={s.name} application={s.applications.find((a) => a.job_id === j.id)} onChanged={load} />
         ))}
