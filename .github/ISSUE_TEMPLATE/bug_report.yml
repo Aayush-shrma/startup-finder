@@ -1,0 +1,38 @@
+name: Bug report
+description: Something is broken or shows wrong data
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to …
+        2. Click …
+        3. See …
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where did you see it?
+      options:
+        - Live site (startup-finder.onrender.com)
+        - Running locally
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device and browser
+      placeholder: e.g. Android Chrome, Windows Edge
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots or error messages
+      description: Please don't paste your private link, resume, or anything from your .env file.

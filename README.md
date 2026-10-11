@@ -85,13 +85,8 @@ Switch to **All startups** to see everything.
 - Funding-news startups usually have no website, so jobs for them are only found if another source knows them.
 
 ## Contributing
-Issues and pull requests are welcome.
-
-1. Fork the repo and create a branch (`git checkout -b fix/my-change`).
-2. Set it up locally as in [Run it](#run-it). Never commit `.env` / `.env.local`.
-3. Run `npm run typecheck` and `npm test` before opening a PR.
-4. Keep scrapers polite: respect robots.txt, keep the per-host delay, and don't add sources that require login
-   or forbid scraping in their terms.
+Issues and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for how to set up, test and
+submit a change, and the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## License
 [MIT](LICENSE) © 2026 Sakshi Gaikwad.
