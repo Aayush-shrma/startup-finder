@@ -5,7 +5,7 @@
 Every day, find startups (Pune + Remote by default) that are hiring for **your** profile,
 and show exactly why each job matches. Upload a resume or pick skills, locations and startup types.
 
-**Live:** https://startup-finder.onrender.com · Next.js + TypeScript + Tailwind + PostgreSQL
+**Live:** https://startup-finder.sakshii.tech · Next.js + TypeScript + Tailwind + PostgreSQL
 
 ## Run it
 
