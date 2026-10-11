@@ -111,9 +111,10 @@ export function GettingStarted({ startups, onShowBest }: { startups: StartupView
           Hide
         </button>
       </div>
-      <ol className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Phones: swipe through the steps. Larger screens: grid. */}
+      <ol className="mt-3 flex snap-x gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-2 sm:overflow-visible sm:pb-0 lg:grid-cols-4">
         {steps.slice(1).map((s) => (
-          <li key={s.title} className={`flex flex-col justify-between gap-2 rounded-lg bg-white p-3 ${s.done ? "opacity-60" : ""}`}>
+          <li key={s.title} className={`flex w-[78%] shrink-0 snap-start flex-col justify-between gap-2 rounded-lg bg-white p-3 sm:w-auto ${s.done ? "opacity-60" : ""}`}>
             <div>
               <div className="flex items-center gap-1.5 text-sm font-medium text-gray-900">
                 <span className={`flex h-4 w-4 items-center justify-center rounded-full text-[10px] ${s.done ? "bg-emerald-500 text-white" : "border border-gray-300"}`}>

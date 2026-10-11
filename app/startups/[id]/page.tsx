@@ -11,9 +11,10 @@ export const dynamic = "force-dynamic";
 function Field({ label, value, href, source }: { label: string; value: React.ReactNode; href?: string | null; source?: string | null }) {
   const unknown = value === null || value === undefined || value === "";
   return (
-    <div className="grid grid-cols-[160px_1fr] gap-2 border-b border-gray-100 py-1.5 text-sm">
-      <dt className="text-gray-500">{label}</dt>
-      <dd className={unknown ? "text-gray-400" : "text-gray-900"}>
+    // Phones: label above value. Long URLs wrap instead of pushing the page wider than the screen.
+    <div className="grid grid-cols-1 gap-0.5 border-b border-gray-100 py-1.5 text-sm sm:grid-cols-[160px_minmax(0,1fr)] sm:gap-2">
+      <dt className="text-xs text-gray-500 sm:text-sm">{label}</dt>
+      <dd className={`min-w-0 break-words [overflow-wrap:anywhere] ${unknown ? "text-gray-400" : "text-gray-900"}`}>
         {unknown ? "Unknown" : href ? <a className="text-indigo-600 hover:underline" href={href} target="_blank" rel="noreferrer">{value}</a> : value}
         {source && !unknown && (
           <a href={source} target="_blank" rel="noreferrer" className="ml-2 text-xs text-gray-400 underline">

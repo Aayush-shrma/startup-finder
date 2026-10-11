@@ -64,7 +64,8 @@ export function JobCard({
   const facts = [where, job.employment_type, job.salary, job.min_experience ? `Exp: ${job.min_experience}` : null].filter(Boolean);
   return (
     <div className="py-2.5">
-      <div className="flex items-start gap-2">
+      {/* Phones: actions sit under the title so the title gets the full width. */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             {showCompany && <span className="text-sm text-gray-500">{showCompany} ·</span>}
@@ -76,7 +77,7 @@ export function JobCard({
             {open ? "Hide details ▴" : "Why this match? ▾"}
           </button>
         </div>
-        <div className="flex shrink-0 flex-col items-end gap-1.5">
+        <div className="flex shrink-0 flex-row items-center gap-2 sm:flex-col sm:items-end sm:gap-1.5">
           <a
             href={job.apply_url ?? job.job_url}
             target="_blank"

@@ -1,36 +1,26 @@
 import "./globals.css";
-import Link from "next/link";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import { NavBar } from "@/components/NavBar";
 
 export const metadata: Metadata = {
   title: "Daily Startup Finder",
-  description: "Startups in Pune / Remote that are hiring for your profile",
+  description: "Find startups hiring for your skills — matched to your resume, with the reason for every match.",
 };
 
-const NAV = [
-  ["/dashboard", "Dashboard"],
-  ["/jobs", "Jobs"],
-  ["/applications", "Applications"],
-  ["/settings", "My profile"],
-];
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover", // lets the phone tab bar sit above the home indicator (safe-area padding)
+  themeColor: "#ffffff",
+};
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body className="min-h-screen antialiased">
-        <header className="border-b border-gray-200 bg-white">
-          <nav className="mx-auto flex max-w-7xl items-center gap-6 px-4 py-3">
-            <Link href="/dashboard" className="font-semibold text-gray-900">
-              Daily Startup Finder
-            </Link>
-            {NAV.map(([href, label]) => (
-              <Link key={href} href={href} className="text-sm text-gray-600 hover:text-gray-900">
-                {label}
-              </Link>
-            ))}
-          </nav>
-        </header>
-        <main className="mx-auto max-w-7xl px-4 py-6">{children}</main>
+        <NavBar />
+        {/* Extra bottom padding on phones so content isn't hidden behind the tab bar. */}
+        <main className="mx-auto max-w-7xl px-3 py-4 pb-24 sm:px-4 sm:py-6 sm:pb-6">{children}</main>
       </body>
     </html>
   );

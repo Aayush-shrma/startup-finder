@@ -27,6 +27,7 @@ export function Dashboard() {
   const [lastRunAt, setLastRunAt] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [name, setName] = useState<string | null>(null);
+  const [showFilters, setShowFilters] = useState(false); // phones: filters open on demand
   const poll = useRef<ReturnType<typeof setInterval> | null>(null);
   const filtersReady = useRef(false);
 
@@ -140,6 +141,9 @@ export function Dashboard() {
     }, 80);
   }
 
+  const activeFilters =
+    (f.roles ?? []).length + (f.types ?? []).length + f.funding.length + f.age.length + (f.emailOnly ? 1 : 0) + (f.matchingOnly ? 1 : 0) + (f.search ? 1 : 0);
+
   const lastRunLabel = lastRunAt ? new Date(lastRunAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : null;
   const freshCount = (startups ?? []).filter((s) => s.is_fresh).length;
 
@@ -147,8 +151,8 @@ export function Dashboard() {
     <div className="space-y-5">
       <section className="rounded-xl border border-gray-200 bg-white p-5">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-900">{name ? `Hi ${name} — startups hiring for you` : "Startups hiring for you"}</h1>
+          <div className="min-w-0">
+            <h1 className="text-xl font-semibold text-gray-900 sm:text-2xl">{name ? `Hi ${name.split(" ")[0]} — startups hiring for you` : "Startups hiring for you"}</h1>
             <p className="text-sm text-gray-500">
               {today} · Showing {f.locations.length ? f.locations.join(", ") : "all locations"}
             </p>
@@ -156,13 +160,14 @@ export function Dashboard() {
           <button
             onClick={() => findToday()}
             disabled={run?.running}
-            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-70"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-70 sm:w-auto"
           >
             {run?.running && <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" />}
             {run?.running ? "Finding startups… (~3 min)" : "🔎 Find Startups Today"}
           </button>
         </div>
-        <ol className="mt-4 grid gap-2 text-xs text-gray-600 sm:grid-cols-3">
+        {/* The explainer is hidden on phones to get to the startups faster. */}
+        <ol className="mt-4 hidden gap-2 text-xs text-gray-600 sm:grid sm:grid-cols-3">
           <li className="rounded-lg bg-gray-50 px-3 py-2">
             <b className="text-gray-800">1. Find</b> — pulls hiring startups from Y Combinator, funding news, job boards and company careers pages.
           </li>
@@ -192,7 +197,8 @@ export function Dashboard() {
 
       {startups && startups.length > 0 && !run?.running && lastRunAt && new Date(lastRunAt).toDateString() !== new Date().toDateString() && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-          You haven’t searched today yet — showing what was found on <b>{lastRunLabel}</b>. Click <b>Find Startups Today</b> for fresh results.
+          Showing results from <b>{lastRunLabel}</b>.<span className="hidden sm:inline"> You haven’t searched today yet — click <b>Find Startups Today</b> for fresh results.</span>
+          <span className="sm:hidden"> Tap Find Startups Today for fresh ones.</span>
         </div>
       )}
 
@@ -200,12 +206,26 @@ export function Dashboard() {
 
       {startups && <Summary list={viewList} label={f.view === "today" ? `Found in the latest search${lastRunLabel ? ` (${lastRunLabel})` : ""}` : "All startups found so far"} />}
 
-      <div className="grid gap-5 lg:grid-cols-[260px_1fr]">
-        <div>
+      {/* minmax(0,1fr): without it the single phone column grows to its widest child and the page overflows. */}
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
+        <div className={showFilters ? "" : "hidden lg:block"}>
           <Filters f={f} set={setFilters} defaults={defaults} />
+          <button
+            onClick={() => setShowFilters(false)}
+            className="mt-2 w-full rounded-lg bg-gray-900 py-2.5 text-sm font-semibold text-white lg:hidden"
+          >
+            Show {shown.length} startups
+          </button>
         </div>
-        <div>
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-3 text-sm">
+        <div className="min-w-0">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-sm sm:gap-3">
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 lg:hidden"
+              aria-expanded={showFilters}
+            >
+              ⚙ Filters{activeFilters ? ` · ${activeFilters}` : ""}
+            </button>
             <div className="flex rounded-lg border border-gray-200 bg-white p-0.5">
               {(
                 [
@@ -268,7 +288,7 @@ export function Dashboard() {
               </div>
             </div>
           )}
-          <div className="grid items-start gap-4 xl:grid-cols-2">
+          <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 xl:grid-cols-2">
             {shown.map((s) => (
               <StartupCard key={s.id} s={s} onChanged={load} />
             ))}

@@ -2,7 +2,7 @@ import type { StartupView } from "@/lib/types";
 
 function Tile({ label, value, hint, tone = "text-gray-900" }: { label: string; value: number; hint: string; tone?: string }) {
   return (
-    <div className="rounded-lg border border-gray-100 bg-gray-50/60 p-3" title={hint}>
+    <div className="min-w-[104px] shrink-0 snap-start rounded-lg border border-gray-100 bg-gray-50/60 p-3 sm:min-w-0" title={hint}>
       <div className={`text-2xl font-semibold tabular-nums ${tone}`}>{value}</div>
       <div className="text-xs text-gray-500">{label}</div>
     </div>
@@ -15,7 +15,8 @@ export function Summary({ list, label }: { list: StartupView[]; label: string })
   return (
     <section className="rounded-xl border border-gray-200 bg-white p-4">
       <h2 className="mb-3 text-sm font-semibold text-gray-900">{label}</h2>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
+      {/* Phones: one swipeable row. Larger screens: grid. */}
+      <div className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:grid sm:grid-cols-4 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-8">
         <Tile label="Startups found" value={list.length} hint="Startups in this view" />
         <Tile label="Great matches" value={strong} tone="text-emerald-700" hint="Have a job for your target role, in Pune / remote India, at your experience level" />
         <Tile label="Good matches" value={potential} tone="text-amber-600" hint="Have a job that fits, with something to check (location or role)" />
