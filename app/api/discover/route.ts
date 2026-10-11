@@ -8,15 +8,22 @@ export const dynamic = "force-dynamic";
 /** Discovery is shared by all users, so a new run only starts if the last one is older than this. */
 const COOLDOWN_HOURS = 3;
 
+/** Public view of a run: progress and totals only. The detailed log (sources, URLs) stays server-side. */
+function publicStatus() {
+  const { running, startedAt, finishedAt, stats } = runStatus();
+  return { running, startedAt, finishedAt, stats };
+}
+
 export async function GET() {
-  return NextResponse.json(runStatus());
+  return NextResponse.json(publicStatus());
 }
 
 export async function POST(req: Request) {
   try {
     await ready();
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    console.error("discover: database not ready:", e);
+    return NextResponse.json({ error: "The service is temporarily unavailable. Please try again shortly." }, { status: 500 });
   }
   // Allowed for signed-up users, or for a scheduler that knows CRON_SECRET (daily auto-run).
   const cron = process.env.CRON_SECRET && req.headers.get("x-cron-secret") === process.env.CRON_SECRET;
@@ -26,8 +33,8 @@ export async function POST(req: Request) {
     "SELECT started_at FROM discovery_runs WHERE status = 'done' ORDER BY id DESC LIMIT 1"
   );
   if (last && Date.now() - new Date(last.started_at).getTime() < COOLDOWN_HOURS * 3600_000) {
-    return NextResponse.json({ started: false, upToDate: true, lastRunAt: last.started_at, ...runStatus() });
+    return NextResponse.json({ started: false, upToDate: true, lastRunAt: last.started_at, ...publicStatus() });
   }
   const started = startDiscovery();
-  return NextResponse.json({ started, ...runStatus() }, { status: started ? 202 : 200 });
+  return NextResponse.json({ started, ...publicStatus() }, { status: started ? 202 : 200 });
 }

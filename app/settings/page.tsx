@@ -8,13 +8,6 @@ interface Me {
   queries: string[];
   canonicalSkills: string[];
 }
-interface Source {
-  id: string;
-  name: string;
-  last_run_at: string | null;
-  last_status: string | null;
-  notes: string | null;
-}
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -28,7 +21,6 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 export default function SettingsPage() {
   const router = useRouter();
   const [me, setMe] = useState<Me | null>(null);
-  const [sources, setSources] = useState<Source[]>([]);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -36,9 +28,6 @@ export default function SettingsPage() {
       if (r.status === 401) return router.replace("/onboarding");
       setMe(await r.json());
     });
-    fetch("/api/profile", { cache: "no-store" })
-      .then((r) => r.json())
-      .then((d) => setSources(d.sources ?? []));
   }, [router]);
 
   if (!me) return <div className="text-sm text-gray-500">Loading…</div>;
@@ -107,21 +96,6 @@ export default function SettingsPage() {
           <button onClick={startOver} className="mt-3 text-xs text-rose-600 hover:underline">
             Sign out on this device
           </button>
-        </section>
-
-        <section className="rounded-xl border border-gray-200 bg-white p-5">
-          <h2 className="font-semibold">Where startups come from</h2>
-          <ul className="mt-2 space-y-2 text-sm">
-            {sources.map((s) => (
-              <li key={s.id}>
-                <div className="font-medium">{s.name}</div>
-                <div className="text-xs text-gray-500">{s.notes}</div>
-                <div className="text-xs text-gray-400">
-                  Last run: {s.last_run_at ? new Date(s.last_run_at).toLocaleString("en-IN") : "never"} · {s.last_status ?? "—"}
-                </div>
-              </li>
-            ))}
-          </ul>
         </section>
       </div>
     </div>
