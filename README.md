@@ -1,7 +1,11 @@
 # Daily Startup Finder (v0)
 
-Personal tool: every day, find startups (Pune + Remote by default) that are hiring for **your** profile,
-and show exactly why each job matches.
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
+Every day, find startups (Pune + Remote by default) that are hiring for **your** profile,
+and show exactly why each job matches. Upload a resume or pick skills, locations and startup types.
+
+**Live:** https://startup-finder.onrender.com · Next.js + TypeScript + Tailwind + PostgreSQL
 
 ## Run it
 
@@ -79,3 +83,18 @@ Switch to **All startups** to see everything.
   low-confidence AI/industry classification only.
 - Wellfound / LinkedIn are not scraped (authentication / terms).
 - Funding-news startups usually have no website, so jobs for them are only found if another source knows them.
+
+## Contributing
+Issues and pull requests are welcome.
+
+1. Fork the repo and create a branch (`git checkout -b fix/my-change`).
+2. Set it up locally as in [Run it](#run-it). Never commit `.env` / `.env.local`.
+3. Run `npm run typecheck` and `npm test` before opening a PR.
+4. Keep scrapers polite: respect robots.txt, keep the per-host delay, and don't add sources that require login
+   or forbid scraping in their terms.
+
+## License
+[MIT](LICENSE) © 2026 Sakshi Gaikwad.
+
+The license covers this code only. Data the app collects (YC directory, job boards, funding news, company sites)
+belongs to those sources and stays under their own terms.
