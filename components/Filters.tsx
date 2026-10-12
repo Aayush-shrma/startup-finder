@@ -28,6 +28,7 @@ export interface FilterState {
   types?: string[]; // startup types ("AI", "HealthTech", …); empty = all
   hiringOnly: boolean;
   matchingOnly: boolean;
+  relevance?: string[]; // best match level: strong (great) | potential (good); empty = any
   emailOnly?: boolean;
   search: string;
   sort: "match" | "discovered" | "funding" | "founded" | "relevant_jobs";
@@ -92,6 +93,7 @@ export function applyFilters(list: StartupView[], f: FilterState): StartupView[]
     if (f.age.length && !f.age.includes(s.age_bucket)) return false;
     if (f.hiringOnly && s.jobs.length === 0) return false;
     if (f.matchingOnly && s.relevant_jobs === 0) return false;
+    if (f.relevance?.length && !f.relevance.includes(s.relevance)) return false;
     if (f.emailOnly && s.emails.length === 0) return false;
     if (f.search) {
       const q = f.search.toLowerCase();
@@ -223,8 +225,16 @@ export function Filters({ f, set, defaults = DEFAULT_FILTERS }: { f: FilterState
         </div>
       </Group>
 
-      <Group title="Show only" active={[f.hiringOnly, f.matchingOnly, f.emailOnly].filter(Boolean).length}>
+      <Group title="Show only" active={[f.hiringOnly, f.matchingOnly, f.emailOnly].filter(Boolean).length + (f.relevance ?? []).length}>
         <div className="space-y-2">
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              ["strong", "Great matches"],
+              ["potential", "Good matches"],
+            ].map(([k, l]) => (
+              <Pill key={k} label={l} on={(f.relevance ?? []).includes(k)} onClick={() => set({ ...f, relevance: toggle(f.relevance ?? [], k) })} />
+            ))}
+          </div>
           <Switch label="Hiring now" hint="Has at least one open job" on={f.hiringOnly} onChange={(v) => set({ ...f, hiringOnly: v })} />
           <Switch label="Has a job that fits me" hint="Great or good match" on={f.matchingOnly} onChange={(v) => set({ ...f, matchingOnly: v })} />
           <Switch label="Has a contact email" hint="Published on their website" on={!!f.emailOnly} onChange={(v) => set({ ...f, emailOnly: v })} />

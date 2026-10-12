@@ -4,7 +4,7 @@ import type { StartupView } from "@/lib/types";
 import { useRouter, useSearchParams } from "next/navigation";
 import { applyFilters, DEFAULT_FILTERS, Filters, filtersForProfile, type FilterState } from "./Filters";
 import { StartupCard } from "./StartupCard";
-import { Summary } from "./Summary";
+import { Summary, type SummaryPick } from "./Summary";
 import { GettingStarted } from "./GettingStarted";
 
 interface RunState {
@@ -127,6 +127,34 @@ export function Dashboard() {
   const viewList = useMemo(() => (startups ?? []).filter((s) => f.view === "all" || s.is_fresh), [startups, f.view]);
   const shown = useMemo(() => applyFilters(startups ?? [], f), [startups, f]);
 
+  /** Summary tile clicked: show exactly the startups that tile counted (same view, other filters cleared). */
+  function pickSummary(p: SummaryPick) {
+    const base: FilterState = {
+      ...DEFAULT_FILTERS,
+      view: f.view,
+      sort: f.sort,
+      locations: [],
+      hiringOnly: false,
+      matchingOnly: false,
+      relevance: [],
+      emailOnly: false,
+      levels: [],
+      types: [],
+    };
+    const by: Record<SummaryPick, Partial<FilterState>> = {
+      all: {},
+      great: { relevance: ["strong"], sort: "match" },
+      good: { relevance: ["potential"], sort: "match" },
+      jobs: { hiringOnly: true, sort: "relevant_jobs" },
+      ai: { types: ["AI"] },
+      funded: { funding: ["funded_180"], sort: "funding" },
+      new: { age: ["new"], sort: "founded" },
+      email: { emailOnly: true },
+    };
+    setFilters({ ...base, ...by[p] });
+    setTimeout(() => document.getElementById("results")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  }
+
   /** Nothing matches: which single filter, if loosened, would bring startups back (and how many). */
   const loosen = useMemo(() => {
     if (!startups?.length || shown.length) return [];
@@ -140,6 +168,7 @@ export function Dashboard() {
       ["Any startup type", { ...f, types: [] }],
       ["Any startup age", { ...f, age: [] }],
       ["Not only jobs that fit me", { ...f, matchingOnly: false }],
+      ["Any match level", { ...f, relevance: [] }],
       ["Not only startups with an email", { ...f, emailOnly: false }],
       ["Clear the search", { ...f, search: "" }],
     ];
@@ -168,7 +197,7 @@ export function Dashboard() {
   }
 
   const activeFilters =
-    (f.roles ?? []).length + (f.levels ?? []).length + (f.types ?? []).length + f.funding.length + f.age.length + (f.emailOnly ? 1 : 0) + (f.matchingOnly ? 1 : 0) + (f.search ? 1 : 0);
+    (f.roles ?? []).length + (f.levels ?? []).length + (f.relevance ?? []).length + (f.types ?? []).length + f.funding.length + f.age.length + (f.emailOnly ? 1 : 0) + (f.matchingOnly ? 1 : 0) + (f.search ? 1 : 0);
 
   const lastRunLabel = lastRunAt ? new Date(lastRunAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : null;
   const freshCount = (startups ?? []).filter((s) => s.is_fresh).length;
@@ -244,10 +273,16 @@ export function Dashboard() {
 
       {startups && startups.length > 0 && <GettingStarted startups={startups} onShowBest={showBest} />}
 
-      {startups && <Summary list={viewList} label={f.view === "today" ? `Found in the latest search${lastRunLabel ? ` (${lastRunLabel})` : ""}` : "All startups found so far"} />}
+      {startups && (
+        <Summary
+          list={viewList}
+          label={f.view === "today" ? `Found in the latest search${lastRunLabel ? ` (${lastRunLabel})` : ""}` : "All startups found so far"}
+          onPick={pickSummary}
+        />
+      )}
 
       {/* minmax(0,1fr): without it the single phone column grows to its widest child and the page overflows. */}
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
+      <div id="results" className="grid scroll-mt-4 grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
         <div className={showFilters ? "" : "hidden lg:block"}>
           <Filters f={f} set={setFilters} defaults={defaults} />
           <button
