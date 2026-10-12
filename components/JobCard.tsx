@@ -2,7 +2,7 @@
 import { useState } from "react";
 import type { ApplicationView, JobView } from "@/lib/types";
 import { APPLICATION_STATUSES } from "@/lib/types";
-import { MatchBadge, MatchWhy } from "./MatchScore";
+import { MatchBadge, MatchLine } from "./MatchScore";
 
 export function StatusSelect({
   startupId,
@@ -74,7 +74,7 @@ export function JobCard({
           </div>
           <div className="mt-0.5 truncate text-xs text-gray-500">{facts.join(" · ")}</div>
           <button onClick={() => setOpen(!open)} className="mt-1 text-xs font-medium text-indigo-600 hover:text-indigo-800">
-            {open ? "Hide details ▴" : "Why this match? ▾"}
+            {open ? "Hide ▴" : "Why this match? ▾"}
           </button>
         </div>
         <div className="flex shrink-0 flex-row items-center gap-2 sm:flex-col sm:items-end sm:gap-1.5">
@@ -91,8 +91,8 @@ export function JobCard({
       </div>
       {open && (
         <>
-          <MatchWhy match={job.match} />
-          <div className="mt-1 text-[11px] text-gray-400">
+          <MatchLine match={job.match} />
+          <div className="mt-0.5 text-[11px] text-gray-400">
             Posted: {job.posted_date ?? "unknown"} · Found on{" "}
             <a className="underline" href={job.source_url ?? job.job_url} target="_blank" rel="noreferrer">
               {SOURCE_NAMES[job.source] ?? job.source}

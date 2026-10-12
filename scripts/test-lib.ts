@@ -11,6 +11,8 @@ import { roleCategories } from "@/lib/jobs/roles";
 import { classifyEmail, contactLink, extractEmails } from "@/lib/emails";
 import { parseResumeText } from "@/lib/resume/parse";
 import { rateLimit } from "@/lib/rate-limit";
+import { isJobTooOld, jobAgeDays } from "@/lib/jobs/age";
+import { fundedRecentlyEnough } from "@/lib/discovery/store";
 import { careersLink, jobPostingsFromJsonLd } from "@/sources/company";
 import type { CandidateProfile } from "@/lib/types";
 
@@ -149,6 +151,27 @@ t("industry from YC taxonomy beats description keywords", () => {
 t("'AI-Enhanced Learning' tag alone is not an AI startup", () => {
   const c = classifyStartup({ name: "Kids Coding", description: "Online coding classes for kids.", tags: ["Education", "AI-Enhanced Learning"], industryHint: "Education" });
   assert.equal(c.is_ai, false);
+});
+t("job age from YC-style and ISO dates", () => {
+  const now = new Date("2026-10-12");
+  assert.equal(jobAgeDays("3 days ago", now), 3);
+  assert.equal(jobAgeDays("about 1 month ago", now), 30);
+  assert.equal(jobAgeDays("over 4 years ago", now), 1460);
+  assert.equal(jobAgeDays("about an hour ago", now), 1 / 24);
+  assert.equal(Math.round(jobAgeDays("2026-09-12", now)!), 30);
+  assert.equal(jobAgeDays(null, now), null);
+  assert.equal(isJobTooOld("almost 2 years ago", now), true);
+  assert.equal(isJobTooOld("5 months ago", now), false);
+  assert.equal(isJobTooOld(null, now), false);
+});
+t("only recently funded startups are added", () => {
+  const now = new Date();
+  const ago = (d: number) => new Date(now.getTime() - d * 86_400_000).toISOString().slice(0, 10);
+  const r = (funding: any) => ({ name: "X", source: "funding_rss", sourceUrl: "u", funding }) as any;
+  assert.equal(fundedRecentlyEnough(r({ date: ago(20), round: "Seed", investors: [] }), now), true);
+  assert.equal(fundedRecentlyEnough(r({ date: ago(400), round: "Seed", investors: [] }), now), false);
+  assert.equal(fundedRecentlyEnough(r({ date: null, round: "Y Combinator Winter 2019", investors: [] }), now), false);
+  assert.equal(fundedRecentlyEnough(r(null), now), false);
 });
 t("YC batch dates the funding at Demo Day", () => {
   assert.equal(ycBatchFundingDate("Y Combinator Spring 2026"), "2026-06-01");

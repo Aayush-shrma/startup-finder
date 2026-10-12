@@ -3,6 +3,7 @@
 import { query } from "@/lib/database";
 import type { AppUser } from "@/lib/users";
 import { jobLevel, matchJob } from "@/lib/matching";
+import { isJobTooOld } from "@/lib/jobs/age";
 import { candidateSkillSet } from "@/lib/matching/skills";
 import { companyLocationTags, locationTags } from "@/lib/jobs/location";
 import { ageBucket, fundingStatus, ycBatchFundingDate } from "@/lib/funding";
@@ -105,6 +106,7 @@ export async function loadStartups(user: AppUser, opts: { id?: number; slim?: bo
   const jobsBy = new Map<number, JobView[]>();
   for (const s of startups) {
     for (const { row: j, tags, roles } of data.jobsByStartup.get(s.id) ?? []) {
+    if (isJobTooOld(j.posted_date)) continue; // e.g. YC postings from years ago
     const view: JobView = {
       id: j.id,
       startup_id: j.startup_id,

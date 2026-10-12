@@ -4,7 +4,9 @@ import type { CandidateProfile, JobResult, StartupResult } from "@/lib/types";
 import { query } from "@/lib/database";
 import { domainOf, normalizeLinkedin, normalizeName } from "@/lib/deduplication";
 import { classifyStartup } from "@/lib/classification";
-import { isNewStartup, fundingStatus } from "@/lib/funding";
+import { isNewStartup, fundingStatus, ycBatchFundingDate } from "@/lib/funding";
+import { isJobTooOld } from "@/lib/jobs/age";
+import { settings } from "@/config/settings";
 import { matchJob } from "@/lib/matching";
 import { locationTags } from "@/lib/jobs/location";
 import { candidateSkillSet } from "@/lib/matching/skills";
@@ -12,6 +14,8 @@ import { candidateSkillSet } from "@/lib/matching/skills";
 export interface UpsertOutcome {
   id: number;
   created: boolean;
+  /** Not stored: a new startup without recent funding. */
+  skipped?: boolean;
   newJobs: number;
   newRelevantJobs: string[];
   changes: string[];
@@ -43,11 +47,26 @@ function same(a: unknown, b: unknown) {
   return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 }
 
+/** Funding date a new startup is judged by: dated news, else its YC batch (approximate Demo Day). */
+function resultFundingDate(r: StartupResult): string | null {
+  return r.funding?.date ?? ycBatchFundingDate(r.funding?.round) ?? null;
+}
+
+/** New startups are added only if funded recently; known startups keep getting updates. */
+export function fundedRecentlyEnough(r: StartupResult, now = new Date()): boolean {
+  const date = resultFundingDate(r);
+  if (!date) return false;
+  return (now.getTime() - new Date(date).getTime()) / 86_400_000 <= settings.addFundedWithinDays;
+}
+
 export async function upsertStartup(r: StartupResult, profile: CandidateProfile): Promise<UpsertOutcome> {
   const domain = domainOf(r.website);
   const linkedin = normalizeLinkedin(r.linkedinUrl);
   const norm = normalizeName(r.name);
   const existing = await findExisting(r, domain, linkedin, norm);
+  if (!existing && !fundedRecentlyEnough(r)) {
+    return { id: 0, created: false, skipped: true, newJobs: 0, newRelevantJobs: [], changes: [] };
+  }
   const changes: string[] = [];
 
   // ----- merge simple fields -----
@@ -189,6 +208,8 @@ async function upsertJobs(startupId: number, r: StartupResult, profile: Candidat
   const seenUrls: string[] = [];
   for (const j of r.jobs as JobResult[]) {
     if (!j.url || !j.title) continue;
+    // Stale postings are skipped; leaving them out of seenUrls also marks stored copies inactive below.
+    if (isJobTooOld(j.postedDate)) continue;
     seenUrls.push(j.url);
     const rows = await query<{ inserted: boolean }>(
       `INSERT INTO jobs (startup_id, job_title, job_url, apply_url, location, remote, remote_scope, employment_type,

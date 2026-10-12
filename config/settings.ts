@@ -7,6 +7,10 @@ export const settings = {
   growingYears: 10, // founded within N years of today
   /** Funding buckets in days */
   fundingBuckets: [30, 90, 180] as const,
+  /** Only startups funded within this many days are added (YC batches dated at Demo Day). Existing ones keep updating. */
+  addFundedWithinDays: 180,
+  /** Job postings older than this are skipped and hidden. */
+  maxJobAgeDays: 180,
   /** Match-score cut-offs */
   strongMatch: 65,
   potentialMatch: 40,

@@ -80,9 +80,14 @@ export async function runDiscovery(onLog?: (m: string) => void): Promise<RunStat
       try {
         const results = await src.discover(ctx);
         let created = 0;
+        let skipped = 0;
         for (const r of results) {
           try {
             const out = await upsertStartup(r, profile);
+            if (out.skipped) {
+              skipped++;
+              continue;
+            }
             s.stats.startups++;
             s.stats.jobs += r.jobs?.length ?? 0;
             s.stats.newJobs += out.newJobs;
@@ -94,7 +99,7 @@ export async function runDiscovery(onLog?: (m: string) => void): Promise<RunStat
           }
         }
         s.stats.created += created;
-        log(`${src.name}: ${results.length} startups (${created} new)`);
+        log(`${src.name}: ${results.length} startups (${created} new${skipped ? `, ${skipped} skipped — not funded recently` : ""})`);
         await query("UPDATE sources SET last_run_at = now(), last_status = $2 WHERE id = $1", [
           src.id,
           `ok: ${results.length} startups, ${created} new`,
