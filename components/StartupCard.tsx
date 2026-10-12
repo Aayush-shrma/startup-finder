@@ -106,7 +106,7 @@ export function StartupCard({ s, onChanged }: { s: StartupView; onChanged: () =>
         )}
         {recentlyFunded && (
           <Chip tone="amber" title={s.funding_source ? `Source: ${s.funding_source}` : ""}>
-            💰 Raised {s.last_funding_amount ?? ""}
+            💰 {s.last_funding_amount ? `Raised ${s.last_funding_amount}` : "Funded"}
             {s.funding_round ? ` ${s.funding_round}` : ""} · {s.last_funding_date ? daysAgo(s.last_funding_date) : ""}
           </Chip>
         )}

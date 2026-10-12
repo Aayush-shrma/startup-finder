@@ -189,7 +189,8 @@ export function Filters({ f, set, defaults = DEFAULT_FILTERS }: { f: FilterState
             ["funded_180", "Last 6 months"],
           ].map(([k, l]) => (
             // One period at a time ("3 months" already includes "30 days").
-            <Pill key={k} label={l} on={f.funding.includes(k)} onClick={() => set({ ...f, funding: f.funding.includes(k) ? [] : [k] })} />
+            // Funding spans months, so picking a period looks at all startups, not just today's changes.
+            <Pill key={k} label={l} on={f.funding.includes(k)} onClick={() => set(f.funding.includes(k) ? { ...f, funding: [] } : { ...f, funding: [k], view: "all" })} />
           ))}
           <Pill label="Any time" on={!f.funding.length} onClick={() => set({ ...f, funding: [] })} />
         </div>

@@ -5,7 +5,7 @@ import { normalizeName, domainOf } from "@/lib/deduplication";
 import { parseRemote, locationTags } from "@/lib/jobs/location";
 import { jobLevel, matchJob } from "@/lib/matching";
 import { classifyStartup } from "@/lib/classification";
-import { parseFundingHeadline, fundingStatus, isNewStartup } from "@/lib/funding";
+import { parseFundingHeadline, fundingStatus, isNewStartup, ycBatchFundingDate } from "@/lib/funding";
 import { generateQueries } from "@/lib/discovery/queries";
 import { roleCategories } from "@/lib/jobs/roles";
 import { classifyEmail, contactLink, extractEmails } from "@/lib/emails";
@@ -149,6 +149,14 @@ t("industry from YC taxonomy beats description keywords", () => {
 t("'AI-Enhanced Learning' tag alone is not an AI startup", () => {
   const c = classifyStartup({ name: "Kids Coding", description: "Online coding classes for kids.", tags: ["Education", "AI-Enhanced Learning"], industryHint: "Education" });
   assert.equal(c.is_ai, false);
+});
+t("YC batch dates the funding at Demo Day", () => {
+  assert.equal(ycBatchFundingDate("Y Combinator Spring 2026"), "2026-06-01");
+  assert.equal(ycBatchFundingDate("Y Combinator Winter 2021"), "2021-03-01");
+  assert.equal(ycBatchFundingDate("Seed"), null);
+  const now = new Date("2026-10-12");
+  assert.equal(fundingStatus(ycBatchFundingDate("Y Combinator Spring 2026"), null, now), "funded_180");
+  assert.equal(fundingStatus(ycBatchFundingDate("Y Combinator Winter 2026"), null, now), "older");
 });
 t("funding buckets", () => {
   const now = new Date("2026-10-01");

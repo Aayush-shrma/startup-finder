@@ -126,6 +126,30 @@ export function Dashboard() {
 
   const viewList = useMemo(() => (startups ?? []).filter((s) => f.view === "all" || s.is_fresh), [startups, f.view]);
   const shown = useMemo(() => applyFilters(startups ?? [], f), [startups, f]);
+
+  /** Nothing matches: which single filter, if loosened, would bring startups back (and how many). */
+  const loosen = useMemo(() => {
+    if (!startups?.length || shown.length) return [];
+    const options: [string, FilterState][] = [
+      ["Show all startups, not just new & updated", { ...f, view: "all" }],
+      ["Include startups with no open jobs found", { ...f, hiringOnly: false }],
+      ["Any funding date", { ...f, funding: [] }],
+      ["Any location", { ...f, locations: [] }],
+      ["Any job role", { ...f, roles: [] }],
+      ["Any experience level", { ...f, levels: [] }],
+      ["Any startup type", { ...f, types: [] }],
+      ["Any startup age", { ...f, age: [] }],
+      ["Not only jobs that fit me", { ...f, matchingOnly: false }],
+      ["Not only startups with an email", { ...f, emailOnly: false }],
+      ["Clear the search", { ...f, search: "" }],
+    ];
+    return options
+      .filter(([, next]) => JSON.stringify(next) !== JSON.stringify(f))
+      .map(([label, next]) => ({ label, next, count: applyFilters(startups, next).length }))
+      .filter((o) => o.count > 0)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 3);
+  }, [startups, shown.length, f]);
   const today = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
 
   /** "Show my best match": all startups, best match first, then scroll to the top card. */
@@ -291,14 +315,15 @@ export function Dashboard() {
           )}
           {startups && startups.length > 0 && shown.length === 0 && (
             <div className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center text-sm text-gray-500">
-              No startups match these filters.
-              <div className="mt-3 flex justify-center gap-2">
-                {f.view === "today" && (
-                  <button className="rounded-lg border border-gray-300 px-3 py-1.5 text-gray-700 hover:bg-gray-50" onClick={() => setFilters({ ...f, view: "all" })}>
-                    Show all startups
+              No startups match all of these filters together.
+              {loosen.length > 0 && <div className="mt-1 text-xs text-gray-400">Try loosening one:</div>}
+              <div className="mt-3 flex flex-col items-center gap-2">
+                {loosen.map((o) => (
+                  <button key={o.label} className="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-indigo-700 hover:bg-indigo-100" onClick={() => setFilters(o.next)}>
+                    {o.label} <b>({o.count})</b>
                   </button>
-                )}
-                <button className="rounded-lg border border-gray-300 px-3 py-1.5 text-gray-700 hover:bg-gray-50" onClick={() => setFilters(DEFAULT_FILTERS)}>
+                ))}
+                <button className="rounded-lg border border-gray-300 px-3 py-1.5 text-gray-700 hover:bg-gray-50" onClick={() => setFilters(defaults)}>
                   Reset filters
                 </button>
               </div>

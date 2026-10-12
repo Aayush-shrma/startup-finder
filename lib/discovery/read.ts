@@ -5,7 +5,7 @@ import type { AppUser } from "@/lib/users";
 import { jobLevel, matchJob } from "@/lib/matching";
 import { candidateSkillSet } from "@/lib/matching/skills";
 import { companyLocationTags, locationTags } from "@/lib/jobs/location";
-import { ageBucket, fundingStatus } from "@/lib/funding";
+import { ageBucket, fundingStatus, ycBatchFundingDate } from "@/lib/funding";
 import { roleCategories } from "@/lib/jobs/roles";
 import type { ApplicationView, JobView, StartupView } from "@/lib/types";
 
@@ -168,7 +168,8 @@ export async function loadStartups(user: AppUser, opts: { id?: number; slim?: bo
     const tags = new Set<string>(companyLocationTags(s.location));
     for (const j of js) for (const t of j.location_tags) tags.add(t);
     if (tags.size === 0) tags.add("Other");
-    const lastFunding = dateOnly(s.last_funding_date);
+    // No dated funding news: a YC batch still dates the investment (approximate Demo Day).
+    const lastFunding = dateOnly(s.last_funding_date) ?? ycBatchFundingDate(s.funding_round);
     const view: StartupView = {
       id: s.id,
       name: s.name,

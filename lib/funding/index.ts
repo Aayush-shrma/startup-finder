@@ -37,6 +37,20 @@ export function ageBucket(foundedYear: number | null, now = new Date()): "new" |
   return "established";
 }
 
+/** Demo Day month of each YC batch: when YC's investment becomes public. */
+const YC_DEMO_DAY_MONTH: Record<string, number> = { winter: 3, spring: 6, summer: 9, fall: 12 };
+
+/**
+ * "Y Combinator Spring 2026" → "2026-06-01" (approximate Demo Day). Used as the funding date when a YC
+ * company has no dated funding news, so recent batches count as recently funded.
+ */
+export function ycBatchFundingDate(round: string | null | undefined): string | null {
+  const m = round?.match(/Y\s?Combinator\s+(Winter|Spring|Summer|Fall)\s+(20\d{2})/i);
+  if (!m) return null;
+  const month = YC_DEMO_DAY_MONTH[m[1].toLowerCase()];
+  return `${m[2]}-${String(month).padStart(2, "0")}-01`;
+}
+
 /** YC batch ("Winter 2021", "Fall 2025") → year. YC invests at the batch, so the year is a verified funding fact. */
 export function ycBatchYear(batch: string | null | undefined): number | null {
   const m = batch?.match(/(\d{4})/);
