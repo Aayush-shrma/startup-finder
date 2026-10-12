@@ -50,11 +50,13 @@ export function JobCard({
   application,
   onChanged,
   showCompany,
+  showScore = true,
 }: {
   job: JobView;
   application?: ApplicationView;
   onChanged?: () => void;
   showCompany?: string;
+  showScore?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const where =
@@ -70,7 +72,7 @@ export function JobCard({
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             {showCompany && <span className="text-sm text-gray-500">{showCompany} ·</span>}
             <span className="text-sm font-medium text-gray-900">{job.job_title}</span>
-            <MatchBadge match={job.match} />
+            <MatchBadge match={job.match} showScore={showScore} />
           </div>
           <div className="mt-0.5 truncate text-xs text-gray-500">{facts.join(" · ")}</div>
           <button onClick={() => setOpen(!open)} className="mt-1 text-xs font-medium text-indigo-600 hover:text-indigo-800">

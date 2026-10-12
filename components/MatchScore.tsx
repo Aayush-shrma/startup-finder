@@ -14,11 +14,12 @@ const STYLE: Record<JobMatch["relevance"], string> = {
   not_relevant: "bg-gray-50 text-gray-400 ring-gray-200",
 };
 
-export function MatchBadge({ match }: { match: JobMatch }) {
+/** `showScore={false}` inside a startup card, whose corner badge already shows the percentage. */
+export function MatchBadge({ match, showScore = true }: { match: JobMatch; showScore?: boolean }) {
   return (
     <span className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ${STYLE[match.relevance]}`}>
       {MATCH_LABEL[match.relevance]}
-      {match.relevance !== "not_relevant" && <span className="font-normal opacity-80">· {match.match_score}%</span>}
+      {showScore && match.relevance !== "not_relevant" && <span className="font-normal opacity-80">· {match.match_score}%</span>}
     </span>
   );
 }
