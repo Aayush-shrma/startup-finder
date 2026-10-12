@@ -2,7 +2,7 @@
 import { useState } from "react";
 import type { ApplicationView, JobView } from "@/lib/types";
 import { APPLICATION_STATUSES } from "@/lib/types";
-import { MatchBadge, MatchLine } from "./MatchScore";
+import { MatchBadge } from "./MatchScore";
 
 export function StatusSelect({
   startupId,
@@ -58,7 +58,6 @@ export function JobCard({
   showCompany?: string;
   showScore?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
   const where =
     job.remote === "yes"
       ? `Remote${job.remote_scope ? ` (${job.remote_scope === "India" ? "India" : job.remote_scope})` : ""}`
@@ -75,9 +74,6 @@ export function JobCard({
             <MatchBadge match={job.match} showScore={showScore} />
           </div>
           <div className="mt-0.5 truncate text-xs text-gray-500">{facts.join(" · ")}</div>
-          <button onClick={() => setOpen(!open)} className="mt-1 text-xs font-medium text-indigo-600 hover:text-indigo-800">
-            {open ? "Hide ▴" : "Why this match? ▾"}
-          </button>
         </div>
         <div className="flex shrink-0 flex-row items-center gap-2 sm:flex-col sm:items-end sm:gap-1.5">
           <a
@@ -91,17 +87,6 @@ export function JobCard({
           <StatusSelect startupId={job.startup_id} jobId={job.id} application={application} onChanged={onChanged} />
         </div>
       </div>
-      {open && (
-        <>
-          <MatchLine match={job.match} />
-          <div className="mt-0.5 text-[11px] text-gray-400">
-            Posted: {job.posted_date ?? "unknown"} · Found on{" "}
-            <a className="underline" href={job.source_url ?? job.job_url} target="_blank" rel="noreferrer">
-              {SOURCE_NAMES[job.source] ?? job.source}
-            </a>
-          </div>
-        </>
-      )}
     </div>
   );
 }

@@ -41,7 +41,7 @@ export function GettingStarted({ startups, onShowBest }: { startups: StartupView
     {
       done: reviewed,
       title: "Look at your best match",
-      body: "Open “Why this match?” to see what fits and what's missing.",
+      body: "See the startup whose jobs fit your profile best.",
       cta: hasMatches ? (
         <button
           onClick={() => {
