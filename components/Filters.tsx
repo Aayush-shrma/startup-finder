@@ -140,7 +140,8 @@ function Switch({ label, on, onChange, hint }: { label: string; on: boolean; onC
 
 function Group({ title, children, hint, defaultOpen = true, active = 0 }: { title: string; children: React.ReactNode; hint?: string; defaultOpen?: boolean; active?: number }) {
   return (
-    <details open={defaultOpen} className="group border-t border-gray-100 pt-3 first:border-t-0 first:pt-0">
+    // A group with an active filter is always shown open, so you can see what's filtering the list.
+    <details open={defaultOpen || active > 0} className="group border-t border-gray-100 pt-3 first:border-t-0 first:pt-0">
       <summary className="flex cursor-pointer list-none items-center justify-between text-xs font-semibold uppercase tracking-wide text-gray-500">
         <span>
           {title}
@@ -180,6 +181,20 @@ export function Filters({ f, set, defaults = DEFAULT_FILTERS }: { f: FilterState
         </div>
       </Group>
 
+      <Group title="Recently funded" active={f.funding.length} hint={f.funding.length ? "Startups that raised money in this period" : "Any funding date"}>
+        <div className="flex flex-wrap gap-1.5">
+          {[
+            ["funded_30", "Last 30 days"],
+            ["funded_90", "Last 3 months"],
+            ["funded_180", "Last 6 months"],
+          ].map(([k, l]) => (
+            // One period at a time ("3 months" already includes "30 days").
+            <Pill key={k} label={l} on={f.funding.includes(k)} onClick={() => set({ ...f, funding: f.funding.includes(k) ? [] : [k] })} />
+          ))}
+          <Pill label="Any time" on={!f.funding.length} onClick={() => set({ ...f, funding: [] })} />
+        </div>
+      </Group>
+
       <Group
         title="Experience"
         hint={levels.length ? "Cards show only jobs at these levels" : "Pick Fresher to see entry-level jobs only"}
@@ -212,18 +227,6 @@ export function Filters({ f, set, defaults = DEFAULT_FILTERS }: { f: FilterState
           <Switch label="Hiring now" hint="Has at least one open job" on={f.hiringOnly} onChange={(v) => set({ ...f, hiringOnly: v })} />
           <Switch label="Has a job that fits me" hint="Great or good match" on={f.matchingOnly} onChange={(v) => set({ ...f, matchingOnly: v })} />
           <Switch label="Has a contact email" hint="Published on their website" on={!!f.emailOnly} onChange={(v) => set({ ...f, emailOnly: v })} />
-        </div>
-      </Group>
-
-      <Group title="Funding" active={f.funding.length} defaultOpen={false}>
-        <div className="flex flex-wrap gap-1.5">
-          {[
-            ["funded_30", "Last 30 days"],
-            ["funded_90", "Last 3 months"],
-            ["funded_180", "Last 6 months"],
-          ].map(([k, l]) => (
-            <Pill key={k} label={l} on={f.funding.includes(k)} onClick={() => set({ ...f, funding: toggle(f.funding, k) })} />
-          ))}
         </div>
       </Group>
 
