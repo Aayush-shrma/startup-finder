@@ -51,13 +51,17 @@ export function JobCard({
   onChanged,
   showCompany,
   showScore = true,
+  funding,
 }: {
   job: JobView;
   application?: ApplicationView;
   onChanged?: () => void;
   showCompany?: string;
   showScore?: boolean;
+  /** The startup's latest funding, shown in the job's footer line. */
+  funding?: FundingInfo;
 }) {
+  const funded = fundedLabel(funding);
   const where =
     job.remote === "yes"
       ? `Remote${job.remote_scope ? ` (${job.remote_scope === "India" ? "India" : job.remote_scope})` : ""}`
@@ -87,8 +91,39 @@ export function JobCard({
           <StatusSelect startupId={job.startup_id} jobId={job.id} application={application} onChanged={onChanged} />
         </div>
       </div>
+      <div className="mt-1 text-[11px] text-gray-400">
+        Posted {postedLabel(job.posted_date)} · Found on{" "}
+        <a className="underline hover:text-gray-600" href={job.source_url ?? job.job_url} target="_blank" rel="noreferrer">
+          {SOURCE_NAMES[job.source] ?? job.source}
+        </a>
+        {funded && <> · Funded {funded}</>}
+      </div>
     </div>
   );
+}
+
+export type FundingInfo = { last_funding_date: string | null; last_funding_amount: string | null; funding_round: string | null };
+
+const fmtDate = (iso: string) => new Date(iso + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+
+/** "3 days ago" stays as is; "2026-07-10" becomes "10 Jul 2026". */
+function postedLabel(posted: string | null) {
+  if (!posted) return "date unknown";
+  return /^\d{4}-\d{2}-\d{2}$/.test(posted) ? fmtDate(posted) : posted;
+}
+
+/** "9 Oct 2026 ($30M, Series A)" / "Jun 2026 (Y Combinator Spring 2026)" / null when unknown. */
+function fundedLabel(f?: FundingInfo) {
+  if (!f || (!f.last_funding_date && !f.funding_round)) return null;
+  const yc = /Y Combinator/i.test(f.funding_round ?? "");
+  // YC dates are approximate (Demo Day month), so show only the month.
+  const when = f.last_funding_date
+    ? yc && !f.last_funding_amount
+      ? new Date(f.last_funding_date + "T00:00:00").toLocaleDateString("en-IN", { month: "short", year: "numeric" })
+      : fmtDate(f.last_funding_date)
+    : null;
+  const what = [f.last_funding_amount, f.funding_round].filter(Boolean).join(", ");
+  return when ? `${when}${what ? ` (${what})` : ""}` : what;
 }
 
 export const SOURCE_NAMES: Record<string, string> = {

@@ -78,7 +78,7 @@ export function applyFilters(list: StartupView[], f: FilterState): StartupView[]
   const out = list.map((s) => restrictJobs(s, roles, levels)).filter((s) => {
     if ((roles.length || levels.length) && s.jobs.length === 0) return false;
     if (f.view === "today" && !s.is_fresh) return false;
-    if (f.locations.length && !s.location_tags.some((t) => f.locations.includes(t))) return false;
+    if (f.locations.length && !s.location_tags.includes("Unknown") && !s.location_tags.some((t) => f.locations.includes(t))) return false;
     const types = f.types ?? [];
     if (types.length && !((types.includes("AI") && (s.is_ai === true || s.industry === "AI Startup")) || (s.industry && types.includes(s.industry)))) return false;
     if (s.is_ai === true && !f.ai.ai) return false;
@@ -192,7 +192,13 @@ export function Filters({ f, set, defaults = DEFAULT_FILTERS }: { f: FilterState
           ].map(([k, l]) => (
             // One period at a time ("3 months" already includes "30 days").
             // Funding spans months, so picking a period looks at all startups, not just today's changes.
-            <Pill key={k} label={l} on={f.funding.includes(k)} onClick={() => set(f.funding.includes(k) ? { ...f, funding: [] } : { ...f, funding: [k], view: "all" })} />
+            // News-found startups usually have no jobs listed yet, so "Hiring now" is turned off too.
+            <Pill
+              key={k}
+              label={l}
+              on={f.funding.includes(k)}
+              onClick={() => set(f.funding.includes(k) ? { ...f, funding: [] } : { ...f, funding: [k], view: "all", hiringOnly: false })}
+            />
           ))}
           <Pill label="Any time" on={!f.funding.length} onClick={() => set({ ...f, funding: [] })} />
         </div>

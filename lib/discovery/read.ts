@@ -169,7 +169,8 @@ export async function loadStartups(user: AppUser, opts: { id?: number; slim?: bo
     const best = relevant[0]?.match.match_score ?? 0;
     const tags = new Set<string>(companyLocationTags(s.location));
     for (const j of js) for (const t of j.location_tags) tags.add(t);
-    if (tags.size === 0) tags.add("Other");
+    // Nothing says where they are (typical for funding-news startups): location filters don't hide them.
+    if (tags.size === 0) tags.add("Unknown");
     // No dated funding news: a YC batch still dates the investment (approximate Demo Day).
     const lastFunding = dateOnly(s.last_funding_date) ?? ycBatchFundingDate(s.funding_round);
     const view: StartupView = {

@@ -119,9 +119,9 @@ export function StartupCard({ s, onChanged }: { s: StartupView; onChanged: () =>
         {relevant.length === 0 && <div className="py-2 text-xs text-gray-500">None of their open jobs fit your profile.</div>}
         <div className="divide-y divide-gray-100">
           {relevant.slice(0, 3).map((j) => (
-            <JobCard key={j.id} job={j} application={appFor(j.id)} onChanged={onChanged} showScore={false} />
+            <JobCard key={j.id} job={j} application={appFor(j.id)} onChanged={onChanged} showScore={false} funding={s} />
           ))}
-          {showOthers && [...relevant.slice(3), ...others].map((j) => <JobCard key={j.id} job={j} application={appFor(j.id)} onChanged={onChanged} showScore={false} />)}
+          {showOthers && [...relevant.slice(3), ...others].map((j) => <JobCard key={j.id} job={j} application={appFor(j.id)} onChanged={onChanged} showScore={false} funding={s} />)}
         </div>
         {hidden > 0 && (
           <button onClick={() => setShowOthers(!showOthers)} className="py-1 text-xs text-gray-500 hover:text-gray-800">

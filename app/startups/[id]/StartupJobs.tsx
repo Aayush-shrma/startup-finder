@@ -9,7 +9,7 @@ export function StartupJobs({ s }: { s: StartupView }) {
   return (
     <div>
       {s.jobs.map((j) => (
-        <JobCard key={j.id} job={j} application={s.applications.find((a) => a.job_id === j.id)} onChanged={() => router.refresh()} />
+        <JobCard key={j.id} job={j} funding={s} application={s.applications.find((a) => a.job_id === j.id)} onChanged={() => router.refresh()} />
       ))}
     </div>
   );

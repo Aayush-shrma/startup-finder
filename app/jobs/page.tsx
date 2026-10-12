@@ -84,7 +84,7 @@ export default function JobsPage() {
           </div>
         )}
         {jobs.map(({ j, s }) => (
-          <JobCard key={j.id} job={j} showCompany={s.name} application={s.applications.find((a) => a.job_id === j.id)} onChanged={load} />
+          <JobCard key={j.id} job={j} showCompany={s.name} funding={s} application={s.applications.find((a) => a.job_id === j.id)} onChanged={load} />
         ))}
       </div>
     </div>
