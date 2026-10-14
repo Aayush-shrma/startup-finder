@@ -17,15 +17,15 @@ const LINKS = [
 const item = "text-gray-600 transition-colors hover:text-gray-900";
 
 /**
- * One-line site footer. Every item after the first gets its "·" from CSS with the same margin on
- * both sides, so the spacing is identical between all items (and on wrapped lines).
+ * Site footer, items spread evenly across the full width (tablet and up). On phones, where they
+ * wrap onto several lines, they're centred with an even gap instead.
  * Extra bottom padding on phones so it clears the tab bar.
  */
 export function Footer() {
   return (
     <footer className="border-t border-gray-200 pb-24 pt-6 sm:pb-8">
       <nav aria-label="Footer" className="mx-auto max-w-6xl px-4">
-        <ul className="flex flex-wrap items-center gap-y-2 text-[13px] leading-5 [&>li+li]:before:mx-2.5 [&>li+li]:before:text-gray-300 [&>li+li]:before:content-['·']">
+        <ul className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[13px] leading-5 sm:justify-between sm:gap-x-4">
           <li className="text-gray-500">© {new Date().getFullYear()} Daily Startup Finder</li>
           {LINKS.map((l) => (
             <li key={l.href}>
