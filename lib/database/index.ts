@@ -5,7 +5,6 @@ import { Pool, types } from "pg";
 types.setTypeParser(1082, (v: string) => v);
 import fs from "node:fs";
 import path from "node:path";
-import crypto from "node:crypto";
 import type { CandidateProfile } from "@/lib/types";
 import { SOURCE_DEFS } from "@/sources/registry-meta";
 
@@ -40,10 +39,8 @@ export function ready(): Promise<void> {
          WHERE NOT EXISTS (SELECT 1 FROM users) ORDER BY id DESC LIMIT 1`
       );
       if (legacy[0]) {
-        const { rows: u } = await pool().query(
-          "INSERT INTO users (token, profile) VALUES ($1, $2) RETURNING id",
-          [crypto.randomBytes(24).toString("base64url"), JSON.stringify(legacy[0].data)]
-        );
+        // No session yet: the owner reopens it with a private link created from the server if needed.
+        const { rows: u } = await pool().query("INSERT INTO users (profile) VALUES ($1) RETURNING id", [JSON.stringify(legacy[0].data)]);
         await pool().query("UPDATE applications SET user_id = $1 WHERE user_id IS NULL", [u[0].id]);
         await pool().query("UPDATE startups SET show_again = false");
       }

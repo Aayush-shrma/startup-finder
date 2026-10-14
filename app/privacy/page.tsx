@@ -28,7 +28,8 @@ export default function PrivacyPage() {
           </li>
           <li>
             <b>A login cookie</b> (<code>sf_uid</code>): a random token that links this browser to your profile. It contains
-            nothing about you, can&apos;t be read by page scripts, and lasts one year.
+            nothing about you, can&apos;t be read by page scripts, and lasts one year. The database keeps only a one-way hash of
+            it, and signing out deletes it.
           </li>
           <li>
             <b>Browser storage</b> on your device only: your theme, dashboard filters and whether you hid the getting-started
@@ -46,7 +47,9 @@ export default function PrivacyPage() {
 
       <Section title="Your private link">
         <p>
-          Your private link contains your login token. Anyone with the link can open your profile, so share it only with yourself.
+          Your private link carries its own random token, separate from your login cookie, and the database keeps only a hash
+          of it. Anyone with the link can open your profile, so keep it to yourself. Getting a new link on My profile turns the
+          old one off.
         </p>
       </Section>
 

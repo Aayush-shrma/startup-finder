@@ -11,6 +11,7 @@ import { roleCategories } from "@/lib/jobs/roles";
 import { classifyEmail, contactLink, extractEmails } from "@/lib/emails";
 import { parseResumeText } from "@/lib/resume/parse";
 import { rateLimit } from "@/lib/rate-limit";
+import { hashToken } from "@/lib/users";
 import { isJobTooOld, jobAgeDays } from "@/lib/jobs/age";
 import { fundedRecentlyEnough } from "@/lib/discovery/store";
 import { careersLink, jobPostingsFromJsonLd } from "@/sources/company";
@@ -298,6 +299,13 @@ t("doesn't invent Go/TypeScript from short words", () => {
   assert.ok(!r.skills.includes("Go") && !r.skills.includes("TypeScript"));
 });
 t("AI role inferred from LLM skills", () => assert.ok(parseResumeText("Built agents with LangGraph and Groq LLM.").roles.includes("AI Engineer")));
+
+console.log("sessions and private links");
+t("tokens are stored as SHA-256 hex (same as Postgres encode(sha256(...),'hex') in the migration)", () => {
+  assert.equal(hashToken("abc"), "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+  assert.equal(hashToken("abc").length, 64);
+  assert.notEqual(hashToken("token-a"), hashToken("token-b"));
+});
 
 console.log("rate limiting");
 t("6th new profile from the same IP within an hour is refused; other IPs aren't affected", () => {

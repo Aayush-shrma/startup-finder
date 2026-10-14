@@ -12,6 +12,7 @@ export const LIMITS = {
   resume: { max: 10, windowMs: 60 * 60_000 }, // resume PDF reads per IP per hour
   discover: { max: 20, windowMs: 60 * 60_000 }, // "Find Startups Today" clicks per IP per hour
   privateLink: { max: 30, windowMs: 60 * 60_000 }, // private-link opens (slows token guessing)
+  newLink: { max: 10, windowMs: 60 * 60_000 }, // new private links created
   read: { max: 120, windowMs: 60_000 }, // dashboard/data reads per IP per minute
   write: { max: 60, windowMs: 60_000 }, // saves, status changes, pins per IP per minute
 } as const;

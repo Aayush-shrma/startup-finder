@@ -116,17 +116,45 @@ CREATE TABLE IF NOT EXISTS applications (
   updated_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 -- ---------- multi-user ----------
--- Each visitor is a user identified by a secret token in a cookie (no passwords).
--- Startups and jobs are shared; profile, pins and applications are per user.
+-- Each visitor is a user (no passwords). Startups and jobs are shared; profile, pins and
+-- applications are per user.
 CREATE TABLE IF NOT EXISTS users (
   id          SERIAL PRIMARY KEY,
-  token       TEXT NOT NULL UNIQUE,
+  token       TEXT UNIQUE,                 -- legacy plain token; emptied by the migration below
   profile     JSONB NOT NULL,
   pinned      INT[] NOT NULL DEFAULT '{}',
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
   last_seen_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE users ALTER COLUMN token DROP NOT NULL;
+
+-- One session per signed-in browser. The cookie holds a random token; only its SHA-256 is stored,
+-- so a database leak doesn't hand out working logins. Signing out deletes the row.
+CREATE TABLE IF NOT EXISTS sessions (
+  id           SERIAL PRIMARY KEY,
+  user_id      INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token_hash   TEXT NOT NULL UNIQUE,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  last_seen_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS sessions_user_idx ON sessions (user_id);
+
+-- Private link: its own random token (hash only), separate from any session. Asking for a new
+-- link replaces it, so the old link stops working.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS link_token_hash TEXT UNIQUE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS link_created_at TIMESTAMPTZ;
+
+-- Migration from plain tokens (idempotent): each old token becomes a hashed session, and keeps
+-- working as that user's private link until they ask for a new one. Then the plain token is erased.
+INSERT INTO sessions (user_id, token_hash)
+  SELECT id, encode(sha256(convert_to(token, 'UTF8')), 'hex') FROM users WHERE token IS NOT NULL
+  ON CONFLICT (token_hash) DO NOTHING;
+UPDATE users
+  SET link_token_hash = COALESCE(link_token_hash, encode(sha256(convert_to(token, 'UTF8')), 'hex')),
+      link_created_at = COALESCE(link_created_at, created_at),
+      token = NULL
+  WHERE token IS NOT NULL;
 
 ALTER TABLE applications ADD COLUMN IF NOT EXISTS user_id INT REFERENCES users(id) ON DELETE CASCADE;
 DROP INDEX IF EXISTS applications_startup_job_uq;
