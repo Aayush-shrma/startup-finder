@@ -5,9 +5,10 @@ import { remotiveSource } from "./jobs/remotive";
 import { fundingSource } from "./funding";
 import { searchSource } from "./search";
 import { companyCareersSource } from "./company";
+import { ossSource } from "./oss";
 
 /** Order matters: richer sources first so later ones merge into existing records. */
 export const SOURCES: StartupSource[] = [ycSource, remotiveSource, searchSource, fundingSource];
 
-/** Runs after the others, using what's already stored. */
-export const ENRICHERS: StartupSource[] = [companyCareersSource];
+/** Runs after the others, using what's already stored. ossSource fills its own table (open-source projects). */
+export const ENRICHERS: StartupSource[] = [companyCareersSource, ossSource];

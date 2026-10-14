@@ -161,6 +161,34 @@ DROP INDEX IF EXISTS applications_startup_job_uq;
 CREATE UNIQUE INDEX IF NOT EXISTS applications_user_startup_job_uq
   ON applications (COALESCE(user_id, 0), startup_id, COALESCE(job_id, 0));
 
+-- ---------- open source ----------
+-- YC companies tagged Open Source and the GitHub account their YC page lists (null = none listed).
+CREATE TABLE IF NOT EXISTS oss_orgs (
+  slug          TEXT PRIMARY KEY,            -- YC company slug
+  company_name  TEXT NOT NULL,
+  github_org    TEXT,
+  checked_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  searched_at   TIMESTAMPTZ
+);
+-- One row per GitHub repo with an open beginner issue, plus the one issue we suggest.
+CREATE TABLE IF NOT EXISTS oss_projects (
+  repo              TEXT PRIMARY KEY,        -- "owner/name"
+  github_org        TEXT NOT NULL,
+  company_name      TEXT NOT NULL,
+  company_yc_url    TEXT,
+  company_website   TEXT,
+  one_liner         TEXT,
+  yc_batch          TEXT,
+  hiring            BOOLEAN NOT NULL DEFAULT false,
+  beginner_issues   INT NOT NULL DEFAULT 0,  -- open, unassigned beginner issues found in this repo
+  issue_title       TEXT NOT NULL,
+  issue_url         TEXT NOT NULL,
+  issue_labels      TEXT[] NOT NULL DEFAULT '{}',
+  issue_comments    INT NOT NULL DEFAULT 0,
+  issue_updated_at  TIMESTAMPTZ,
+  fetched_at        TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- One row per "Find Startups Today" run, so the dashboard can say what is new today.
 CREATE TABLE IF NOT EXISTS discovery_runs (
   id           SERIAL PRIMARY KEY,

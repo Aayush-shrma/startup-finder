@@ -38,6 +38,14 @@ export const SOURCE_DEFS = [
     notes: "Looks for a careers link on a startup's own website and reads public Greenhouse / Lever / Ashby job-board APIs.",
   },
   {
+    id: "oss_github",
+    name: "Open-source projects (YC + GitHub)",
+    kind: "open_source",
+    baseUrl: "https://api.github.com/search/issues",
+    notes:
+      "YC companies tagged Open Source (yc-oss dataset); their GitHub account from the YC company page; then GitHub's public search API for open, unassigned good-first-issue / help-wanted issues. Optional GITHUB_TOKEN raises the rate limit.",
+  },
+  {
     id: "search",
     name: "Web search (Brave Search API)",
     kind: "search",

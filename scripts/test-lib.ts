@@ -12,6 +12,7 @@ import { classifyEmail, contactLink, extractEmails } from "@/lib/emails";
 import { parseResumeText } from "@/lib/resume/parse";
 import { rateLimit } from "@/lib/rate-limit";
 import { hashToken } from "@/lib/users";
+import { beginnerIssueQuery, pickSuggestedIssue, repoOf, type GhIssue } from "@/sources/oss";
 import { isJobTooOld, jobAgeDays } from "@/lib/jobs/age";
 import { fundedRecentlyEnough } from "@/lib/discovery/store";
 import { careersLink, jobPostingsFromJsonLd } from "@/sources/company";
@@ -299,6 +300,28 @@ t("doesn't invent Go/TypeScript from short words", () => {
   assert.ok(!r.skills.includes("Go") && !r.skills.includes("TypeScript"));
 });
 t("AI role inferred from LLM skills", () => assert.ok(parseResumeText("Built agents with LangGraph and Groq LLM.").roles.includes("AI Engineer")));
+
+console.log("open source");
+t("suggested issue: 'good first issue' first, then fewest comments, then most recent", () => {
+  const i = (title: string, labels: string[], comments: number, updated: string): GhIssue => ({
+    title, html_url: `https://github.com/a/b/issues/${title}`, repository_url: "https://api.github.com/repos/acme/app",
+    labels: labels.map((name) => ({ name })), comments, updated_at: updated,
+  });
+  const pick = pickSuggestedIssue([
+    i("help-busy", ["help wanted"], 0, "2026-10-10"),
+    i("gfi-busy", ["good first issue"], 9, "2026-10-12"),
+    i("gfi-quiet-old", ["Good First Issue"], 1, "2026-09-01"),
+    i("gfi-quiet-new", ["good-first-issue", "bug"], 1, "2026-10-01"),
+  ]);
+  assert.equal(pick.title, "gfi-quiet-new");
+  assert.equal(repoOf(pick), "acme/app");
+});
+t("beginner-issue search covers several accounts and recent issues only", () => {
+  const q = beginnerIssueQuery(["PostHog", "cedana"], "2026-04-14");
+  assert.ok(q.includes("user:PostHog user:cedana"));
+  assert.ok(q.includes("is:open") && q.includes("no:assignee") && q.includes("updated:>=2026-04-14"));
+  assert.ok(q.includes('"good first issue"'));
+});
 
 console.log("sessions and private links");
 t("tokens are stored as SHA-256 hex (same as Postgres encode(sha256(...),'hex') in the migration)", () => {
