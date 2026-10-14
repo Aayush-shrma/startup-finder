@@ -6,7 +6,7 @@ import type { DiscoveryContext, JobResult, StartupResult, StartupSource } from "
 import { cacheAgeHours, cachedJson, cachedText } from "@/lib/http";
 import { parseRemote } from "@/lib/jobs/location";
 import { settings } from "@/config/settings";
-import { ycBatchFundingDate } from "@/lib/funding";
+import { isRecentYcBatch } from "@/lib/funding";
 import { countryFromCode, countryFromLocation } from "@/lib/country";
 import type { Founder, Headquarters } from "@/lib/types";
 
@@ -118,12 +118,9 @@ export const ycSource: StartupSource = {
     ctx.log("YC: loading hiring-company list (yc-oss mirror)…");
     const all = await cachedJson<YcOssCompany[]>(HIRING_URL, settings.cacheHours.ycDirectory);
     const urlOf = (c: YcOssCompany) => `${YC}/companies/${c.slug}`;
-    // Only batches funded within settings.addFundedWithinDays (or in a batch right now); older
-    // companies aren't shown, so their pages aren't read either.
-    const recent = (c: YcOssCompany) => {
-      const date = ycBatchFundingDate(`Y Combinator ${c.batch}`);
-      return !!date && (Date.now() - new Date(date).getTime()) / 86_400_000 <= settings.addFundedWithinDays;
-    };
+    // Only this year's batches (Winter → Fall) and anything funded within settings.addFundedWithinDays;
+    // older companies aren't shown, so their pages aren't read either.
+    const recent = (c: YcOssCompany) => isRecentYcBatch(`Y Combinator ${c.batch}`);
     const active = all.filter((c) => c.status === "Active" && c.isHiring && recent(c));
     // India-based companies first, then fully remote, then the rest (newest first).
     const newest = (a: YcOssCompany, b: YcOssCompany) => (b.launched_at ?? 0) - (a.launched_at ?? 0);
@@ -131,7 +128,7 @@ export const ycSource: StartupSource = {
     const remote = active.filter((c) => !isIndia(c) && c.regions?.includes("Fully Remote")).sort(newest);
     const others = active.filter((c) => !isIndia(c) && !c.regions?.includes("Fully Remote")).sort(newest);
     const candidates = [...india, ...remote, ...others];
-    ctx.log(`YC: ${active.length} hiring companies from batches funded in the last ${settings.addFundedWithinDays} days.`);
+    ctx.log(`YC: ${active.length} hiring companies from this year's batches.`);
 
     // Page budget per run: ~2/3 for companies never read before (new discoveries), the rest to
     // refresh the pages read longest ago (new jobs). Unused budget flows to the other group.

@@ -15,11 +15,14 @@ import { fundingAmountText, fundingDateText, FundingKindBadge } from "@/componen
 import { Banner, btnPrimary, btnSecondary, CardSkeleton, EmptyState, PageHeader, Select } from "@/components/ui";
 import { ROLE_CATEGORIES } from "@/lib/jobs/roles";
 import { ycFundedWithin } from "@/lib/filters";
+import { ycBatchFundingDate, ycBatchName } from "@/lib/funding";
 import { settings } from "@/config/settings";
 
 type Funding = "90" | "30" | "any";
 type Country = "any" | "india" | "usa";
 interface Filters {
+  /** "all" or a batch name like "Summer 2026". */
+  batch: string;
   funding: Funding;
   country: Country;
   role: string;
@@ -29,7 +32,8 @@ interface Filters {
   openSource: boolean;
   q: string;
 }
-const DEFAULTS: Filters = { funding: "90", country: "any", role: "all", remote: false, internship: false, fresher: false, openSource: false, q: "" };
+// Funding defaults to any time: the batch row is the main way to narrow by date (Winter 2026 is older than 3 months).
+const DEFAULTS: Filters = { batch: "all", funding: "any", country: "any", role: "all", remote: false, internship: false, fresher: false, openSource: false, q: "" };
 
 /** "Y Combinator Summer 2026" → "YC Summer 2026". */
 const batchLabel = (round: string | null) => round?.replace(/^Y\s?Combinator\s*/i, "YC ").trim() || null;
@@ -48,6 +52,7 @@ function jobMatches(j: JobView, f: Filters): boolean {
 }
 
 function startupMatches(s: StartupView, f: Filters): boolean {
+  if (f.batch !== "all" && ycBatchName(s.funding_round) !== f.batch) return false;
   if (f.funding !== "any" && !ycFundedWithin(s, Number(f.funding))) return false;
   if (f.country === "india" && s.hq_country !== "India") return false;
   if (f.country === "usa" && s.hq_country !== "United States") return false;
@@ -200,6 +205,17 @@ export default function YcJobsPage() {
       .sort((a, b) => b.jobs[0].match.match_score - a.jobs[0].match.match_score);
   }, [startups, f]);
 
+  // Batches present in the data, newest first, with how many companies each has.
+  const batches = useMemo(() => {
+    const count = new Map<string, number>();
+    for (const s of startups ?? []) {
+      const b = ycBatchName(s.funding_round);
+      if (b) count.set(b, (count.get(b) ?? 0) + 1);
+    }
+    const date = (b: string) => ycBatchFundingDate(`Y Combinator ${b}`) ?? "";
+    return [...count.entries()].sort((a, b) => date(b[0]).localeCompare(date(a[0])));
+  }, [startups]);
+
   const jobCount = rows.reduce((n, r) => n + r.jobs.length, 0);
   const totalJobs = (startups ?? []).reduce((n, s) => n + s.jobs.length, 0);
   const narrowed = JSON.stringify(f) !== JSON.stringify(DEFAULTS);
@@ -208,7 +224,7 @@ export default function YcJobsPage() {
     <div className="space-y-6">
       <PageHeader
         title="YC Jobs"
-        subtitle={`Jobs at Y Combinator companies posted in the last ${settings.maxJobAgeDays} days, best match first.`}
+        subtitle={`Jobs at companies from this year's Y Combinator batches, posted in the last ${settings.maxJobAgeDays} days, best match first.`}
         actions={
           <button onClick={load} disabled={loading} className={btnSecondary}>
             <Icon name={loading ? "spinner" : "refresh"} className="h-4 w-4" />
@@ -229,6 +245,22 @@ export default function YcJobsPage() {
             className="w-full rounded-xl border border-gray-300 bg-white py-2.5 pl-10 pr-3.5 text-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-3 focus:ring-brand-100"
           />
         </label>
+        {batches.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2" role="group" aria-label="YC batch">
+            <span className="text-[13px] font-semibold text-gray-700">Batch</span>
+            <Pill label="All batches" on={f.batch === "all"} onClick={() => set({ batch: "all" })} />
+            {batches.map(([b, n]) => (
+              <Pill
+                key={b}
+                label={`${b} (${n})`}
+                on={f.batch === b}
+                // A batch is its own date range, so the funding window is opened up.
+                onClick={() => set(f.batch === b ? { batch: "all" } : { batch: b, funding: "any" })}
+                title={`YC ${b} companies`}
+              />
+            ))}
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
           <Select label="Funded" value={f.funding} onChange={(v) => set({ funding: v as Funding })}>
             <option value="90">Funded: 3 months</option>

@@ -5,7 +5,7 @@ import { normalizeName, domainOf } from "@/lib/deduplication";
 import { parseRemote, locationTags } from "@/lib/jobs/location";
 import { jobLevel, matchJob } from "@/lib/matching";
 import { classifyStartup } from "@/lib/classification";
-import { parseFundingHeadline, fundingStatus, isNewStartup, ycBatchFundingDate } from "@/lib/funding";
+import { parseFundingHeadline, fundingStatus, isNewStartup, isRecentYcBatch, ycBatchFundingDate, ycBatchName } from "@/lib/funding";
 import { generateQueries } from "@/lib/discovery/queries";
 import { roleCategories } from "@/lib/jobs/roles";
 import { classifyEmail, contactLink, extractEmails } from "@/lib/emails";
@@ -324,6 +324,19 @@ t("open source only from a listed GitHub account or YC's Open Source tag", () =>
   assert.equal(isOpenSource(null, ["open-source"]), true);
   assert.equal(isOpenSource(null, ["Developer Tools", "AI"]), false);
   assert.equal(isOpenSource(null, null), false);
+});
+t("YC batches: names, and every batch of this year counts as recent", () => {
+  assert.equal(ycBatchName("Y Combinator Summer 2026"), "Summer 2026");
+  assert.equal(ycBatchName("Y Combinator winter 2026"), "Winter 2026");
+  assert.equal(ycBatchName("Series A"), null);
+  const oct = new Date("2026-10-14");
+  assert.equal(isRecentYcBatch("Y Combinator Winter 2026", oct), true); // Demo Day Mar 2026, same year
+  assert.equal(isRecentYcBatch("Y Combinator Fall 2026", oct), true);
+  assert.equal(isRecentYcBatch("Y Combinator Fall 2025", oct), false); // last year, Demo Day > 3 months ago
+  assert.equal(isRecentYcBatch("Y Combinator Fall 2025", new Date("2026-01-20")), true); // still within 3 months in January
+  assert.equal(isRecentYcBatch("Seed", oct), false);
+  const r = { name: "X", source: "yc", sourceUrl: "u", funding: { date: null, amount: null, round: "Y Combinator Winter 2026", investors: [], source: "YC", sourceUrl: "u" } } as any;
+  assert.equal(fundedRecentlyEnough(r, oct), true);
 });
 t("YC companies are recognised by round or source", () => {
   assert.equal(isYcStartup({ funding_round: "Y Combinator Summer 2026", sources_seen: [], source: "funding_rss" }), true);

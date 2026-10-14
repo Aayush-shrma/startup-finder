@@ -51,6 +51,23 @@ export function ycBatchFundingDate(round: string | null | undefined): string | n
   return `${m[2]}-${String(month).padStart(2, "0")}-01`;
 }
 
+/** "Y Combinator Summer 2026" → "Summer 2026"; null if the round isn't a YC batch. */
+export function ycBatchName(round: string | null | undefined): string | null {
+  const m = round?.match(/Y\s?Combinator\s+(Winter|Spring|Summer|Fall)\s+(20\d{2})/i);
+  return m ? `${m[1][0].toUpperCase()}${m[1].slice(1).toLowerCase()} ${m[2]}` : null;
+}
+
+/**
+ * YC batches the app covers: every batch of the current year (Winter → Fall), plus any batch whose
+ * Demo Day falls within settings.addFundedWithinDays (so last year's Fall batch still counts in January).
+ */
+export function isRecentYcBatch(round: string | null | undefined, now = new Date()): boolean {
+  const date = ycBatchFundingDate(round);
+  if (!date) return false;
+  if (Number(date.slice(0, 4)) === now.getFullYear()) return true;
+  return (now.getTime() - new Date(date).getTime()) / 86_400_000 <= settings.addFundedWithinDays;
+}
+
 /** YC batch ("Winter 2021", "Fall 2025") → year. YC invests at the batch, so the year is a verified funding fact. */
 export function ycBatchYear(batch: string | null | undefined): number | null {
   const m = batch?.match(/(\d{4})/);

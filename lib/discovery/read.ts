@@ -8,7 +8,7 @@ import { settings } from "@/config/settings";
 import { isOpenSource } from "@/lib/filters";
 import { candidateSkillSet } from "@/lib/matching/skills";
 import { companyLocationTags, locationTags } from "@/lib/jobs/location";
-import { ageBucket, fundingStatus, ycBatchFundingDate } from "@/lib/funding";
+import { ageBucket, fundingStatus, isRecentYcBatch, ycBatchFundingDate } from "@/lib/funding";
 import { roleCategories } from "@/lib/jobs/roles";
 import { roleType, workArrangement } from "@/lib/jobs/arrangement";
 import { startupCategories } from "@/lib/classification";
@@ -191,6 +191,7 @@ export async function loadStartups(user: AppUser, opts: { id?: number; slim?: bo
   // Only recently funded startups are shown, plus any this user saved, applied to or pinned.
   const keep = (s: any) => {
     if (opts.id || pinned.has(s.id) || appsBy.has(s.id)) return true;
+    if (isRecentYcBatch(s.funding_round)) return true; // every YC batch of this year (Winter → Fall)
     const date = dateOnly(s.last_funding_date) ?? ycBatchFundingDate(s.funding_round);
     // A future date is an upcoming YC Demo Day: the company is in a batch now, so already funded.
     return !!date && (Date.now() - new Date(date).getTime()) / 86_400_000 <= settings.addFundedWithinDays;

@@ -9,6 +9,7 @@ import {
   fundingStage,
   fundingStatus,
   isNewStartup,
+  isRecentYcBatch,
   parseAmount,
   toUsd,
   ycBatchFundingDate,
@@ -64,8 +65,9 @@ function resultFundingDate(r: StartupResult): string | null {
   return r.funding?.date ?? ycBatchFundingDate(r.funding?.round) ?? null;
 }
 
-/** New startups are added only if funded recently; known startups keep getting updates. */
+/** New startups are added only if funded recently (or in a YC batch from this year); known startups keep getting updates. */
 export function fundedRecentlyEnough(r: StartupResult, now = new Date()): boolean {
+  if (isRecentYcBatch(r.funding?.round, now)) return true;
   const date = resultFundingDate(r);
   if (!date) return false;
   return (now.getTime() - new Date(date).getTime()) / 86_400_000 <= settings.addFundedWithinDays;
