@@ -32,7 +32,7 @@ export default function AboutPage() {
         <Bullets>
           <li>The Y Combinator company directory and YC company pages.</li>
           <li>Funding news: Inc42, Economic Times, Entrackr, YourStory, TechCrunch and Crunchbase News.</li>
-          <li>Company websites and careers pages, and the Remotive remote-jobs board.</li>
+          <li>Company websites and careers pages, and the Himalayas remote-jobs board.</li>
         </Bullets>
         <p>
           The app reads public pages only, respects robots.txt and waits between requests to the same site. It never invents

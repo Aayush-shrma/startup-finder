@@ -6,7 +6,7 @@ import { cachedText } from "@/lib/http";
 import { parseAmount, parseFundingHeadline } from "@/lib/funding";
 import { countryFromLocation } from "@/lib/country";
 import { normalizeName } from "@/lib/deduplication";
-import { stripHtml } from "@/sources/jobs/remotive";
+import { stripHtml } from "@/lib/text";
 import { settings } from "@/config/settings";
 
 /** India-focused outlets first; the outlet's country is never used as the startup's country. */

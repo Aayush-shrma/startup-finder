@@ -63,6 +63,7 @@ const IGNORED_DOMAINS = new Set([
   "notion.site",
   "google.com",
   "remotive.com",
+  "himalayas.app",
   "greenhouse.io",
   "lever.co",
   "ashbyhq.com",

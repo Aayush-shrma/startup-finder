@@ -12,6 +12,7 @@ import { classifyEmail, contactLink, extractEmails } from "@/lib/emails";
 import { parseResumeText } from "@/lib/resume/parse";
 import { rateLimit } from "@/lib/rate-limit";
 import { hashToken } from "@/lib/users";
+import { himalayasJob } from "@/sources/jobs/himalayas";
 import { beginnerIssueQuery, pickSuggestedIssue, repoOf, type GhIssue } from "@/sources/oss";
 import { isJobTooOld, jobAgeDays } from "@/lib/jobs/age";
 import { fundedRecentlyEnough } from "@/lib/discovery/store";
@@ -300,6 +301,24 @@ t("doesn't invent Go/TypeScript from short words", () => {
   assert.ok(!r.skills.includes("Go") && !r.skills.includes("TypeScript"));
 });
 t("AI role inferred from LLM skills", () => assert.ok(parseResumeText("Built agents with LangGraph and Groq LLM.").roles.includes("AI Engineer")));
+
+console.log("himalayas");
+t("Himalayas jobs: India or worldwide only, recent only, entry-level counts as fresher", () => {
+  const now = new Date("2026-10-15T00:00:00Z");
+  const base = {
+    title: "Junior Backend Engineer", companyName: "Acme", guid: "https://himalayas.app/companies/acme/jobs/x",
+    applicationLink: "https://acme.com/apply", pubDate: Date.parse("2026-10-14T00:00:00Z") / 1000,
+  };
+  const world = himalayasJob({ ...base, locationRestrictions: [] }, now)!;
+  assert.equal(world.remoteScope, "Worldwide");
+  assert.equal(world.applyUrl, "https://acme.com/apply");
+  assert.equal(world.url, base.guid); // links back to Himalayas
+  assert.equal(himalayasJob({ ...base, locationRestrictions: ["India", "Nepal"] }, now)!.remoteScope, "India");
+  assert.equal(himalayasJob({ ...base, locationRestrictions: ["United States"] }, now), null);
+  assert.equal(himalayasJob({ ...base, pubDate: Date.parse("2026-09-01T00:00:00Z") / 1000 }, now), null); // older than a week
+  const entry = himalayasJob({ ...base, title: "Backend Engineer", seniority: ["Entry-level"] }, now)!;
+  assert.equal(jobLevel(entry.title, entry.minExperience ?? null, null), "fresher");
+});
 
 console.log("open source");
 t("suggested issue: 'good first issue' first, then fewest comments, then most recent", () => {

@@ -22,6 +22,8 @@ export const settings = {
   requestTimeoutMs: 25000,
   /** Max YC company pages fetched per discovery run (each is ~100KB) */
   ycMaxCompanyPages: 60,
+  /** Himalayas: pages of 20 newest remote jobs open to India read per run */
+  himalayasPages: 10,
   /** Max company websites checked for a careers page per run */
   maxCareersChecks: 25,
   /** Open source: YC pages read per run to find GitHub accounts, GitHub searches per run, accounts per search */
@@ -33,7 +35,7 @@ export const settings = {
   /** Cache lifetimes */
   // Funding news and job boards are re-read on every new run (runs are at least 10 minutes apart);
   // the YC directory is a daily mirror, so a day-long cache loses nothing.
-  cacheHours: { ycDirectory: 20, ycCompanyPage: 20, remotive: 1, rss: 0.25, robots: 24, githubSearch: 6 },
+  cacheHours: { ycDirectory: 20, ycCompanyPage: 20, jobBoards: 1, rss: 0.25, robots: 24, githubSearch: 6 },
   userAgent: "DailyStartupFinder/0.1 (personal job-search tool; respects robots.txt)",
 };
 

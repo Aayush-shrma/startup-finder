@@ -9,11 +9,12 @@ export const SOURCE_DEFS = [
       "Hiring-company list from the open yc-oss dataset (github.com/yc-oss/api), then each public YC company page for founded year, LinkedIn and job postings.",
   },
   {
-    id: "remotive",
-    name: "Remotive remote jobs",
+    id: "himalayas",
+    name: "Himalayas remote jobs",
     kind: "job_board",
-    baseUrl: "https://remotive.com/api/remote-jobs",
-    notes: "Public API. Only jobs whose candidate location includes India/Worldwide/APAC are kept. Max a few calls per day (cached).",
+    baseUrl: "https://himalayas.app/jobs/api/search",
+    notes:
+      "Free public API, no key. Search with country=India returns remote jobs open to India (India-restricted or worldwide), newest first; cached 1h. Job links point to Himalayas as they ask. Replaces Remotive, whose robots.txt now disallows its API.",
   },
   {
     id: "funding_rss",

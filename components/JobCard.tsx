@@ -217,6 +217,7 @@ function fundedLabel(f?: FundingInfo) {
 export const SOURCE_NAMES: Record<string, string> = {
   yc: "Y Combinator",
   remotive: "Remotive",
+  himalayas: "Himalayas",
   funding_rss: "funding news",
   company_careers: "company careers page",
   search: "web search",

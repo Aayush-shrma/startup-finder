@@ -8,7 +8,7 @@ import { cachedText } from "@/lib/http";
 import { parseRemote } from "@/lib/jobs/location";
 import { settings } from "@/config/settings";
 import { atsBoardUrl, fetchAtsJobs, findAtsRef } from "@/sources/jobs/ats";
-import { stripHtml } from "@/sources/jobs/remotive";
+import { stripHtml } from "@/lib/text";
 
 export function careersLink(html: string, base: string): string | null {
   let fallback: string | null = null;

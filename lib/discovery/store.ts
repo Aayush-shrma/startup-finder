@@ -53,7 +53,7 @@ async function findExisting(r: StartupResult, domain: string | null, linkedin: s
 }
 
 /** Which source is more authoritative for company facts (higher wins). */
-const PRIORITY: Record<string, number> = { yc: 4, company_careers: 3, search: 2, remotive: 2, funding_rss: 1 };
+const PRIORITY: Record<string, number> = { yc: 4, company_careers: 3, search: 2, remotive: 2, himalayas: 2, funding_rss: 1 };
 const priority = (s: string | undefined) => (s ? PRIORITY[s] ?? 0 : 0);
 
 function same(a: unknown, b: unknown) {

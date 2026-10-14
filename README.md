@@ -50,7 +50,7 @@ Tables are created automatically on first request.
 | Source | What it gives | Notes |
 |---|---|---|
 | `yc` | Hiring YC companies (recent batches: India, US and fully remote); HQ country, other offices, founders + LinkedIn, founded year, jobs | yc-oss open dataset + public YC company pages (robots.txt allows them). Up to 60 new pages/run, cached 20h |
-| `remotive` | Remote jobs open to India / Worldwide / APAC | Public API, cached 6h |
+| `himalayas` | Remote jobs open to India (India-only or worldwide) | Public API, no key, cached 1h |
 | `funding_rss` | Funding announcements (date, amount, round, investors, article URL, confirmed/planned/rumored) | Free RSS: Inc42, ET Tech Funding, ET Startups, Entrackr, YourStory, TechCrunch Fundraising + Startups, Crunchbase News |
 | `company_careers` | Careers page, jobs from public Greenhouse / Lever / Ashby boards or schema.org JobPosting, public emails | For known startups with a website |
 | `search` | Profile-generated queries → public ATS job boards | Optional, needs `SEARCH_API_KEY` (Brave Search API, has a free tier) |
@@ -77,7 +77,7 @@ These were checked and are **not** automated:
 - **Verification**: a second, different outlet reporting the same round is shown as *Independently confirmed*. Different amounts (>15%) or rounds within 45 days are flagged as *Sources disagree*.
 - **Amounts** keep the original text and currency (`₹25 Cr`); USD is added only when a free rate is available.
 - **Emails** come only from the startup's own website and are labelled Careers (careers@, jobs@, recruiting@), Hiring (hiring@, hr@, talent@), General contact, or Person. Nothing is guessed. Missing ones show "Not publicly available".
-- **Openings** are "verified" only when read from a job board (YC, Greenhouse, Lever, Ashby, Remotive) or schema.org JobPosting on the company's own careers page. Otherwise: "No verified opening found". Funding doesn't mean hiring.
+- **Openings** are "verified" only when read from a job board (YC, Greenhouse, Lever, Ashby, Himalayas) or schema.org JobPosting on the company's own careers page. Otherwise: "No verified opening found". Funding doesn't mean hiring.
 - **Founders** are listed only from structured public pages (YC), with their profile link and source.
 
 ### Filters
