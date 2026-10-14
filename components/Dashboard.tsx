@@ -143,10 +143,12 @@ export function Dashboard() {
       return;
     }
     if (data.upToDate) {
+      // A search finished minutes ago: reload its results instead of starting another one.
+      await load();
       setNotice(
         welcome
           ? `Welcome! Here are startups matched to your profile, from a search ${ago(data.lastRunAt)} ago.`
-          : `You're up to date. We last checked ${ago(data.lastRunAt)} ago, so try again later for new startups.`
+          : `Showing the newest results: we searched ${ago(data.lastRunAt)} ago. You can search again in a few minutes.`
       );
       return;
     }

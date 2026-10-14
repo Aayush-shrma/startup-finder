@@ -6,8 +6,11 @@ import { rateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
-/** Discovery is shared by all users, so a new run only starts if the last one is older than this. */
-const COOLDOWN_HOURS = 3;
+/**
+ * Discovery is shared by all users. A click starts a fresh run unless one finished minutes ago,
+ * so many people clicking at once doesn't hammer the sources (a run takes ~3 minutes).
+ */
+const COOLDOWN_MINUTES = 10;
 
 /** Public view of a run: progress and totals only. The detailed log (sources, URLs) stays server-side. */
 function publicStatus() {
@@ -35,7 +38,7 @@ export async function POST(req: Request) {
   const [last] = await query<{ started_at: Date }>(
     "SELECT started_at FROM discovery_runs WHERE status = 'done' ORDER BY id DESC LIMIT 1"
   );
-  if (last && Date.now() - new Date(last.started_at).getTime() < COOLDOWN_HOURS * 3600_000) {
+  if (last && Date.now() - new Date(last.started_at).getTime() < COOLDOWN_MINUTES * 60_000) {
     return NextResponse.json({ started: false, upToDate: true, lastRunAt: last.started_at, ...publicStatus() });
   }
   const started = startDiscovery();

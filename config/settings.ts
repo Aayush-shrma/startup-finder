@@ -22,7 +22,9 @@ export const settings = {
   /** Max company websites checked for a careers page per run */
   maxCareersChecks: 25,
   /** Cache lifetimes */
-  cacheHours: { ycDirectory: 20, ycCompanyPage: 20, remotive: 6, rss: 3, robots: 24 },
+  // Funding news and job boards are re-read on every new run (runs are at least 10 minutes apart);
+  // the YC directory is a daily mirror, so a day-long cache loses nothing.
+  cacheHours: { ycDirectory: 20, ycCompanyPage: 20, remotive: 1, rss: 0.25, robots: 24 },
   userAgent: "DailyStartupFinder/0.1 (personal job-search tool; respects robots.txt)",
 };
 

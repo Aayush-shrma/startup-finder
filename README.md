@@ -30,7 +30,7 @@ Anyone can use it — no sign-up:
 2. **Dashboard**: startups and jobs are shared, but match scores, filters, pins and the application tracker are per person.
 3. The profile is kept in a secure cookie. **My profile → Your private link** reopens it on another device.
 
-"Find Startups Today" runs one shared search; if one ran in the last 3 hours, users just get those results.
+"Find Startups Today" runs one shared search with fresh funding news and job boards; if one ran in the last 10 minutes, users just get those results.
 
 ## Deploy (Render + Neon)
 
