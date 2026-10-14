@@ -57,6 +57,26 @@ CREATE TABLE IF NOT EXISTS startups (
 -- Contact emails found on the startup's own site: [{email, type, source_url, domain_accepts_mail}]
 ALTER TABLE startups ADD COLUMN IF NOT EXISTS emails JSONB NOT NULL DEFAULT '[]';
 ALTER TABLE startups ADD COLUMN IF NOT EXISTS emails_checked_at TIMESTAMPTZ;
+-- Headquarters country (India / United States) with the evidence behind it. `location` stays the HQ text.
+ALTER TABLE startups ADD COLUMN IF NOT EXISTS hq_country TEXT;
+ALTER TABLE startups ADD COLUMN IF NOT EXISTS hq_confidence TEXT;           -- 'high' | 'medium' | 'low'
+ALTER TABLE startups ADD COLUMN IF NOT EXISTS hq_evidence TEXT;
+ALTER TABLE startups ADD COLUMN IF NOT EXISTS hq_source_url TEXT;
+ALTER TABLE startups ADD COLUMN IF NOT EXISTS other_locations TEXT[] NOT NULL DEFAULT '{}';
+-- Founders only from structured public pages (YC): [{name, title, profile_url, source_url}]
+ALTER TABLE startups ADD COLUMN IF NOT EXISTS founders JSONB NOT NULL DEFAULT '[]';
+-- Company GitHub account as listed on its YC page.
+ALTER TABLE startups ADD COLUMN IF NOT EXISTS github_url TEXT;
+-- Funding details. last_funding_* above stay the primary round; every report is kept for verification.
+ALTER TABLE startups ADD COLUMN IF NOT EXISTS funding_stage TEXT;           -- pre_seed | seed | series_a | series_b_plus | accelerator | debt | other
+ALTER TABLE startups ADD COLUMN IF NOT EXISTS funding_kind TEXT;            -- confirmed | planned | rumored
+ALTER TABLE startups ADD COLUMN IF NOT EXISTS funding_currency TEXT;        -- INR | USD | EUR | GBP
+ALTER TABLE startups ADD COLUMN IF NOT EXISTS funding_amount_value NUMERIC; -- in funding_currency units
+ALTER TABLE startups ADD COLUMN IF NOT EXISTS funding_amount_usd NUMERIC;   -- only when a free FX rate was available
+ALTER TABLE startups ADD COLUMN IF NOT EXISTS funding_verification_url TEXT;
+ALTER TABLE startups ADD COLUMN IF NOT EXISTS funding_conflicts JSONB NOT NULL DEFAULT '[]';
+ALTER TABLE startups ADD COLUMN IF NOT EXISTS funding_reports JSONB NOT NULL DEFAULT '[]';
+CREATE INDEX IF NOT EXISTS startups_hq_country_idx ON startups (hq_country);
 CREATE UNIQUE INDEX IF NOT EXISTS startups_domain_uq ON startups (domain) WHERE domain IS NOT NULL;
 CREATE INDEX IF NOT EXISTS startups_norm_idx ON startups (normalized_name);
 CREATE INDEX IF NOT EXISTS startups_linkedin_idx ON startups (linkedin_url);
@@ -96,22 +116,78 @@ CREATE TABLE IF NOT EXISTS applications (
   updated_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 -- ---------- multi-user ----------
--- Each visitor is a user identified by a secret token in a cookie (no passwords).
--- Startups and jobs are shared; profile, pins and applications are per user.
+-- Each visitor is a user (no passwords). Startups and jobs are shared; profile, pins and
+-- applications are per user.
 CREATE TABLE IF NOT EXISTS users (
   id          SERIAL PRIMARY KEY,
-  token       TEXT NOT NULL UNIQUE,
+  token       TEXT UNIQUE,                 -- legacy plain token; emptied by the migration below
   profile     JSONB NOT NULL,
   pinned      INT[] NOT NULL DEFAULT '{}',
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
   last_seen_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE users ALTER COLUMN token DROP NOT NULL;
+
+-- One session per signed-in browser. The cookie holds a random token; only its SHA-256 is stored,
+-- so a database leak doesn't hand out working logins. Signing out deletes the row.
+CREATE TABLE IF NOT EXISTS sessions (
+  id           SERIAL PRIMARY KEY,
+  user_id      INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token_hash   TEXT NOT NULL UNIQUE,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  last_seen_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS sessions_user_idx ON sessions (user_id);
+
+-- Private link: its own random token (hash only), separate from any session. Asking for a new
+-- link replaces it, so the old link stops working.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS link_token_hash TEXT UNIQUE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS link_created_at TIMESTAMPTZ;
+
+-- Migration from plain tokens (idempotent): each old token becomes a hashed session, and keeps
+-- working as that user's private link until they ask for a new one. Then the plain token is erased.
+INSERT INTO sessions (user_id, token_hash)
+  SELECT id, encode(sha256(convert_to(token, 'UTF8')), 'hex') FROM users WHERE token IS NOT NULL
+  ON CONFLICT (token_hash) DO NOTHING;
+UPDATE users
+  SET link_token_hash = COALESCE(link_token_hash, encode(sha256(convert_to(token, 'UTF8')), 'hex')),
+      link_created_at = COALESCE(link_created_at, created_at),
+      token = NULL
+  WHERE token IS NOT NULL;
 
 ALTER TABLE applications ADD COLUMN IF NOT EXISTS user_id INT REFERENCES users(id) ON DELETE CASCADE;
 DROP INDEX IF EXISTS applications_startup_job_uq;
 CREATE UNIQUE INDEX IF NOT EXISTS applications_user_startup_job_uq
   ON applications (COALESCE(user_id, 0), startup_id, COALESCE(job_id, 0));
+
+-- ---------- open source ----------
+-- YC companies tagged Open Source and the GitHub account their YC page lists (null = none listed).
+CREATE TABLE IF NOT EXISTS oss_orgs (
+  slug          TEXT PRIMARY KEY,            -- YC company slug
+  company_name  TEXT NOT NULL,
+  github_org    TEXT,
+  checked_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  searched_at   TIMESTAMPTZ
+);
+-- One row per GitHub repo with an open beginner issue, plus the one issue we suggest.
+CREATE TABLE IF NOT EXISTS oss_projects (
+  repo              TEXT PRIMARY KEY,        -- "owner/name"
+  github_org        TEXT NOT NULL,
+  company_name      TEXT NOT NULL,
+  company_yc_url    TEXT,
+  company_website   TEXT,
+  one_liner         TEXT,
+  yc_batch          TEXT,
+  hiring            BOOLEAN NOT NULL DEFAULT false,
+  beginner_issues   INT NOT NULL DEFAULT 0,  -- open, unassigned beginner issues found in this repo
+  issue_title       TEXT NOT NULL,
+  issue_url         TEXT NOT NULL,
+  issue_labels      TEXT[] NOT NULL DEFAULT '{}',
+  issue_comments    INT NOT NULL DEFAULT 0,
+  issue_updated_at  TIMESTAMPTZ,
+  fetched_at        TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 
 -- One row per "Find Startups Today" run, so the dashboard can say what is new today.
 CREATE TABLE IF NOT EXISTS discovery_runs (

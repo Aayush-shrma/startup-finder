@@ -143,10 +143,12 @@ export function Dashboard() {
       return;
     }
     if (data.upToDate) {
+      // A search finished minutes ago: reload its results instead of starting another one.
+      await load();
       setNotice(
         welcome
           ? `Welcome! Here are startups matched to your profile, from a search ${ago(data.lastRunAt)} ago.`
-          : `You're up to date. We last checked ${ago(data.lastRunAt)} ago, so try again later for new startups.`
+          : `Showing the newest results: we searched ${ago(data.lastRunAt)} ago. You can search again in a few minutes.`
       );
       return;
     }
@@ -172,6 +174,12 @@ export function Dashboard() {
       emailOnly: false,
       levels: [],
       types: [],
+      arrangements: [],
+      stages: [],
+      amounts: [],
+      country: "any",
+      fundingDays: null,
+      confirmedOnly: false,
     };
     const by: Record<SummaryPick, Partial<FilterState>> = {
       all: {},
@@ -179,7 +187,7 @@ export function Dashboard() {
       good: { relevance: ["potential"], sort: "match" },
       jobs: { hiringOnly: true, sort: "relevant_jobs" },
       ai: { types: ["AI"] },
-      funded: { funding: ["funded_180"], sort: "funding" },
+      funded: { fundingDays: 90, sort: "funding" },
       new: { age: ["new"], sort: "founded" },
       email: { emailOnly: true },
     };
@@ -193,11 +201,16 @@ export function Dashboard() {
     const options: [string, FilterState][] = [
       ["Show all startups, not just new & updated", { ...f, view: "all" }],
       ["Include startups with no open jobs found", { ...f, hiringOnly: false }],
-      ["Any funding date", { ...f, funding: [] }],
+      ["Any funding date", { ...f, funding: [], fundingDays: null }],
+      ["Any country", { ...f, country: "any" }],
+      ["Any funding stage", { ...f, stages: [] }],
+      ["Any funding amount", { ...f, amounts: [] }],
+      ["Include planned / unconfirmed funding", { ...f, confirmedOnly: false }],
       ["Any location", { ...f, locations: [] }],
       ["Any job role", { ...f, roles: [] }],
-      ["Any experience level", { ...f, levels: [] }],
-      ["Any startup type", { ...f, types: [] }],
+      ["Any role type", { ...f, levels: [] }],
+      ["Any work arrangement", { ...f, arrangements: [] }],
+      ["Any industry", { ...f, types: [] }],
       ["Any startup age", { ...f, age: [] }],
       ["Not only jobs that fit me", { ...f, matchingOnly: false }],
       ["Any match level", { ...f, relevance: [] }],

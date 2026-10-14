@@ -1,11 +1,14 @@
 import type { StartupView } from "@/lib/types";
+import { fundedWithin } from "@/lib/filters";
+import { settings } from "@/config/settings";
 import { Icon } from "./Icon";
 
 /** Which subset a summary tile stands for; clicking a tile filters the list to it. */
 export type SummaryPick = "all" | "great" | "good" | "jobs" | "ai" | "funded" | "new" | "email";
 
 export const isAiStartup = (s: StartupView) => s.is_ai === true || s.industry === "AI Startup";
-export const isRecentlyFunded = (s: StartupView) => ["funded_30", "funded_90", "funded_180"].includes(s.funding_status);
+// Same rule as the "Recently funded" filter, so clicking the tile shows exactly this many.
+export const isRecentlyFunded = (s: StartupView) => fundedWithin(s, settings.addFundedWithinDays);
 
 function Tile({ label, value, hint, tone, onClick }: { label: string; value: number; hint: string; tone?: string; onClick?: () => void }) {
   const clickable = !!onClick && value > 0;
@@ -43,7 +46,7 @@ export function Summary({ list, label, onPick }: { list: StartupView[]; label: s
         <Tile label="Good matches" value={potential} tone="text-amber-700" hint="Have a job that fits, with something to check (location or role)" onClick={pick("good")} />
         <Tile label="Open jobs" value={list.reduce((n, s) => n + s.jobs.length, 0)} hint="All open jobs at these startups" onClick={pick("jobs")} />
         <Tile label="AI startups" value={list.filter(isAiStartup).length} hint="AI is central to their product" onClick={pick("ai")} />
-        <Tile label="Funded recently" value={list.filter(isRecentlyFunded).length} hint="Raised money in the last 6 months" onClick={pick("funded")} />
+        <Tile label="Funded recently" value={list.filter(isRecentlyFunded).length} hint="Raised money in the last 3 months" onClick={pick("funded")} />
         <Tile label="New (2024+)" value={list.filter((s) => s.is_new_startup === true).length} hint="Founded in 2024 or later" onClick={pick("new")} />
         <Tile label="With email" value={list.filter((s) => s.emails.length > 0).length} hint="A contact email is published on their website" onClick={pick("email")} />
       </div>

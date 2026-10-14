@@ -1,6 +1,6 @@
 // Current visitor: GET profile, POST create (onboarding), PUT update, DELETE sign out of this device.
 import { NextResponse } from "next/server";
-import { createUser, currentUser, updateUserProfile, USER_COOKIE, cookieOptions } from "@/lib/users";
+import { createUser, currentUser, endSession, sessionToken, updateUserProfile, USER_COOKIE, cookieOptions } from "@/lib/users";
 import { GENERIC_PROFILE } from "@/lib/database";
 import { generateQueries } from "@/lib/discovery/queries";
 import { candidateSkillSet } from "@/lib/matching/skills";
@@ -49,8 +49,10 @@ const EXPLORER_PROFILE: CandidateProfile = { ...GENERIC_PROFILE, explorer: true 
 export async function GET() {
   const user = await currentUser();
   if (!user) return NextResponse.json({ user: null }, { status: 401 });
+  // No tokens here: page scripts never see the session token, and the private link is only
+  // handed out by POST /api/me/link when the user asks for it.
   return NextResponse.json({
-    user: { id: user.id, profile: user.profile, privateLinkToken: user.token },
+    user: { id: user.id, profile: user.profile, linkCreatedAt: user.link_created_at },
     queries: generateQueries(user.profile),
     canonicalSkills: [...candidateSkillSet(user.profile)].sort(),
   });
@@ -63,9 +65,9 @@ export async function POST(req: Request) {
     if (existing) return NextResponse.json({ ok: true, existing: true }); // never overwrite a real profile
     const limited = rateLimit(req, "createProfile");
     if (limited) return limited;
-    const user = await createUser(EXPLORER_PROFILE);
+    const { sessionToken } = await createUser(EXPLORER_PROFILE);
     const res = NextResponse.json({ ok: true, created: true });
-    res.cookies.set(USER_COOKIE, user.token, cookieOptions);
+    res.cookies.set(USER_COOKIE, sessionToken, cookieOptions);
     return res;
   }
   const profile = toProfile(body);
@@ -76,9 +78,9 @@ export async function POST(req: Request) {
     await updateUserProfile(existing.id, profile);
     return NextResponse.json({ ok: true, updated: true });
   }
-  const user = await createUser(profile);
+  const { sessionToken } = await createUser(profile);
   const res = NextResponse.json({ ok: true, created: true });
-  res.cookies.set(USER_COOKIE, user.token, cookieOptions);
+  res.cookies.set(USER_COOKIE, sessionToken, cookieOptions);
   return res;
 }
 
@@ -93,7 +95,9 @@ export async function PUT(req: Request) {
   return NextResponse.json({ ok: true });
 }
 
+/** Sign out on this device: the session is deleted on the server, not just the cookie. */
 export async function DELETE() {
+  await endSession(await sessionToken());
   const res = NextResponse.json({ ok: true });
   res.cookies.set(USER_COOKIE, "", { ...cookieOptions, maxAge: 0 });
   return res;

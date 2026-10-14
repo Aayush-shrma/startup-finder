@@ -6,9 +6,48 @@ import type { DiscoveryContext, JobResult, StartupResult, StartupSource } from "
 import { cacheAgeHours, cachedJson, cachedText } from "@/lib/http";
 import { parseRemote } from "@/lib/jobs/location";
 import { settings } from "@/config/settings";
-import { ycBatchFundingDate } from "@/lib/funding";
-import { query } from "@/lib/database";
-import { normalizeName } from "@/lib/deduplication";
+import { isRecentYcBatch } from "@/lib/funding";
+import { countryFromCode, countryFromLocation } from "@/lib/country";
+import type { Founder, Headquarters } from "@/lib/types";
+
+/** YC lists the HQ as `location` + a `country` code; `all_locations` also includes other offices. */
+export function ycHeadquarters(company: any, c: { all_locations?: string }, pageUrl: string): { hq: Headquarters | null; others: string[] } {
+  const hqText: string | null = company?.location || null;
+  const byCode = countryFromCode(company?.country);
+  const country = byCode ?? countryFromLocation(hqText);
+  const hq: Headquarters | null = country
+    ? {
+        country,
+        confidence: byCode ? "high" : "medium",
+        evidence: byCode ? `YC company page: HQ ${hqText ?? ""} (${company.country})`.replace(" ()", "") : `YC company page: HQ ${hqText}`,
+        sourceUrl: pageUrl,
+      }
+    : null;
+  const norm = (s: string) => s.toLowerCase().replace(/[^a-z]/g, "");
+  const others = (c.all_locations ?? "")
+    .split(/\s*;\s*/)
+    .map((s) => s.trim())
+    .filter((s) => s && !/^remote$/i.test(s) && (!hqText || !norm(s).startsWith(norm(hqText.split(",")[0]))));
+  return { hq, others: [...new Set(others)] };
+}
+
+/** The company's GitHub account as listed on its YC page, normalised to https://github.com/<name>; null if absent or not a GitHub link. */
+export function githubAccountUrl(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const m = raw.trim().match(/^(?:https?:\/\/)?(?:www\.)?github\.com\/([A-Za-z0-9](?:[A-Za-z0-9-]{0,38}))(?:[/?#].*)?$/i);
+  return m ? `https://github.com/${m[1]}` : null;
+}
+
+export function ycFounders(company: any, pageUrl: string): Founder[] {
+  return (Array.isArray(company?.founders) ? company.founders : [])
+    .filter((f: any) => typeof f?.full_name === "string" && f.full_name.trim())
+    .map((f: any) => ({
+      name: f.full_name.trim(),
+      title: f.title || null,
+      profile_url: f.linkedin_url || f.twitter_url || null,
+      source_url: pageUrl,
+    }));
+}
 
 const HIRING_URL = "https://yc-oss.github.io/api/companies/hiring.json";
 const YC = "https://www.ycombinator.com";
@@ -79,25 +118,17 @@ export const ycSource: StartupSource = {
     ctx.log("YC: loading hiring-company list (yc-oss mirror)…");
     const all = await cachedJson<YcOssCompany[]>(HIRING_URL, settings.cacheHours.ycDirectory);
     const urlOf = (c: YcOssCompany) => `${YC}/companies/${c.slug}`;
-    // Only recent batches (funded within settings.addFundedWithinDays) are new candidates;
-    // companies read before are still refreshed so their job lists stay current.
-    const recent = (c: YcOssCompany) => {
-      const date = ycBatchFundingDate(`Y Combinator ${c.batch}`);
-      return !!date && (Date.now() - new Date(date).getTime()) / 86_400_000 <= settings.addFundedWithinDays;
-    };
-    // "Known" comes from the database: the page cache is wiped on every deploy.
-    const knownRows = await query<{ normalized_name: string }>("SELECT normalized_name FROM startups WHERE 'yc' = ANY(sources_seen)");
-    const known = new Set(knownRows.map((r) => r.normalized_name));
-    const active = all.filter((c) => c.status === "Active" && c.isHiring && (recent(c) || known.has(normalizeName(c.name))));
-    // India-based companies first, then fully remote, then other recent batches (newest first).
+    // Only this year's batches (Winter → Fall) and anything funded within settings.addFundedWithinDays;
+    // older companies aren't shown, so their pages aren't read either.
+    const recent = (c: YcOssCompany) => isRecentYcBatch(`Y Combinator ${c.batch}`);
+    const active = all.filter((c) => c.status === "Active" && c.isHiring && recent(c));
+    // India-based companies first, then fully remote, then the rest (newest first).
     const newest = (a: YcOssCompany, b: YcOssCompany) => (b.launched_at ?? 0) - (a.launched_at ?? 0);
     const india = active.filter(isIndia);
     const remote = active.filter((c) => !isIndia(c) && c.regions?.includes("Fully Remote")).sort(newest);
-    const others = active.filter((c) => !isIndia(c) && !c.regions?.includes("Fully Remote") && recent(c)).sort(newest);
+    const others = active.filter((c) => !isIndia(c) && !c.regions?.includes("Fully Remote")).sort(newest);
     const candidates = [...india, ...remote, ...others];
-    ctx.log(
-      `YC: ${active.filter(recent).length} hiring companies from batches funded in the last ${settings.addFundedWithinDays} days; ${candidates.length} candidates incl. known ones.`
-    );
+    ctx.log(`YC: ${active.length} hiring companies from this year's batches.`);
 
     // Page budget per run: ~2/3 for companies never read before (new discoveries), the rest to
     // refresh the pages read longest ago (new jobs). Unused budget flows to the other group.
@@ -152,10 +183,15 @@ export const ycSource: StartupSource = {
           sourceUrl: jobUrl,
         };
       });
+      const { hq, others } = ycHeadquarters(company, c, pageUrl);
       results.push({
         name: c.name,
+        hq,
+        otherLocations: others,
+        founders: ycFounders(company, pageUrl),
         website: c.website || company.website || null,
         linkedinUrl: company.linkedin_url || null,
+        githubUrl: githubAccountUrl(company.github_url),
         description: c.long_description || c.one_liner || null,
         location: company.location || c.all_locations || null,
         tags: [...(c.tags ?? []), ...(c.industries ?? [])],

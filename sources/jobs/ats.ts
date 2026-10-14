@@ -2,7 +2,7 @@
 import type { JobResult } from "@/lib/types";
 import { cachedJson } from "@/lib/http";
 import { parseRemote } from "@/lib/jobs/location";
-import { stripHtml } from "./remotive";
+import { stripHtml } from "@/lib/text";
 
 export type AtsRef = { vendor: "greenhouse" | "lever" | "ashby"; slug: string };
 

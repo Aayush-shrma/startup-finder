@@ -7,26 +7,10 @@ import { api } from "@/components/api";
 import { JobCard } from "@/components/JobCard";
 import { EXPERIENCE_LEVELS, filtersForProfile } from "@/components/Filters";
 import { Icon } from "@/components/Icon";
-import { Banner, btnPrimary, btnSecondary, CardSkeleton, EmptyState, PageHeader } from "@/components/ui";
+import { Banner, btnPrimary, btnSecondary, CardSkeleton, EmptyState, PageHeader, Select } from "@/components/ui";
 import { ROLE_CATEGORIES } from "@/lib/jobs/roles";
 
 const PAGE = 40;
-
-function Select({ label, value, onChange, children }: { label: string; value: string; onChange: (v: string) => void; children: React.ReactNode }) {
-  return (
-    <label className="relative">
-      <span className="sr-only">{label}</span>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full appearance-none rounded-xl border border-gray-300 bg-white py-2 pl-3 pr-8 text-[13px] font-medium text-gray-900 focus:border-brand-500 focus:outline-none sm:w-auto"
-      >
-        {children}
-      </select>
-      <Icon name="chevron-down" className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-500" />
-    </label>
-  );
-}
 
 export default function JobsPage() {
   const router = useRouter();

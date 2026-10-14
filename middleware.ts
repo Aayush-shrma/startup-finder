@@ -3,7 +3,7 @@
 // 2) Visitors without a profile cookie are sent to /onboarding before seeing app pages.
 import { NextResponse, type NextRequest } from "next/server";
 
-const APP_PAGES = ["/dashboard", "/jobs", "/applications", "/settings", "/startups"];
+const APP_PAGES = ["/dashboard", "/yc-jobs", "/jobs", "/applications", "/settings", "/startups"];
 
 export function middleware(req: NextRequest) {
   const password = process.env.APP_PASSWORD;

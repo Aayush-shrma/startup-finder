@@ -2,6 +2,7 @@ import "./globals.css";
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { NavBar } from "@/components/NavBar";
+import { Footer } from "@/components/Footer";
 import { themeBootScript } from "@/components/ThemeToggle";
 
 // Self-hosted (SIL Open Font License) so builds never depend on reaching Google Fonts.
@@ -35,10 +36,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Skip to content
         </a>
         <NavBar />
-        {/* Extra bottom padding on phones so content isn't hidden behind the tab bar. */}
-        <main id="main" className="mx-auto max-w-6xl px-4 py-5 pb-28 sm:py-8 sm:pb-10">
+        <main id="main" className="mx-auto max-w-6xl px-4 py-5 pb-10 sm:py-8 sm:pb-12">
           {children}
         </main>
+        {/* The footer carries the extra bottom padding that keeps content clear of the phone tab bar. */}
+        <Footer />
       </body>
     </html>
   );

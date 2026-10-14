@@ -4,10 +4,16 @@ import { query } from "@/lib/database";
 import type { AppUser } from "@/lib/users";
 import { jobLevel, matchJob } from "@/lib/matching";
 import { isJobTooOld } from "@/lib/jobs/age";
+import { settings } from "@/config/settings";
+import { isOpenSource } from "@/lib/filters";
 import { candidateSkillSet } from "@/lib/matching/skills";
 import { companyLocationTags, locationTags } from "@/lib/jobs/location";
-import { ageBucket, fundingStatus, ycBatchFundingDate } from "@/lib/funding";
+import { ageBucket, fundingStatus, isRecentYcBatch, ycBatchFundingDate } from "@/lib/funding";
 import { roleCategories } from "@/lib/jobs/roles";
+import { roleType, workArrangement } from "@/lib/jobs/arrangement";
+import { startupCategories } from "@/lib/classification";
+import { emailPriority } from "@/lib/emails";
+import { countryFromLocation } from "@/lib/country";
 import type { ApplicationView, JobView, StartupView } from "@/lib/types";
 
 function startOfDay(d: Date) {
@@ -25,6 +31,22 @@ export async function freshWindowStart(): Promise<Date> {
     "SELECT started_at FROM discovery_runs WHERE status = 'done' ORDER BY id DESC LIMIT 1"
   );
   return startOfDay(run ? new Date(run.started_at) : new Date());
+}
+
+/**
+ * Stored HQ country, or — for rows saved before HQ evidence was recorded — the country of the stored
+ * HQ location text (never a job's location or an investor's).
+ */
+export function hqOf(s: any): Pick<StartupView, "hq_country" | "hq_confidence" | "hq_evidence" | "hq_source_url"> {
+  if (s.hq_country) return { hq_country: s.hq_country, hq_confidence: s.hq_confidence ?? null, hq_evidence: s.hq_evidence ?? null, hq_source_url: s.hq_source_url ?? null };
+  const country = countryFromLocation(s.location);
+  if (!country) return { hq_country: null, hq_confidence: null, hq_evidence: null, hq_source_url: null };
+  return {
+    hq_country: country,
+    hq_confidence: "medium",
+    hq_evidence: `Headquarters listed as “${s.location}”`,
+    hq_source_url: s.field_sources?.location?.url ?? s.source_url ?? null,
+  };
 }
 
 const iso = (d: any) => (d ? new Date(d).toISOString() : null);
@@ -106,7 +128,8 @@ export async function loadStartups(user: AppUser, opts: { id?: number; slim?: bo
   const jobsBy = new Map<number, JobView[]>();
   for (const s of startups) {
     for (const { row: j, tags, roles } of data.jobsByStartup.get(s.id) ?? []) {
-    if (isJobTooOld(j.posted_date)) continue; // e.g. YC postings from years ago
+    if (isJobTooOld(j.posted_date, new Date(), j.discovered_at)) continue; // only last week's postings
+    const level = jobLevel(j.job_title, j.min_experience, j.description);
     const view: JobView = {
       id: j.id,
       startup_id: j.startup_id,
@@ -127,7 +150,9 @@ export async function loadStartups(user: AppUser, opts: { id?: number; slim?: bo
       is_active: j.is_active,
       location_tags: tags,
       role_categories: roles,
-      experience_level: jobLevel(j.job_title, j.min_experience, j.description),
+      experience_level: level,
+      role_type: roleType(j.job_title, j.employment_type, level),
+      work_arrangement: workArrangement(j.location, j.remote, j.employment_type),
       match: matchJob(
         {
           job_title: j.job_title,
@@ -163,7 +188,16 @@ export async function loadStartups(user: AppUser, opts: { id?: number; slim?: bo
     appsBy.get(a.startup_id)!.push(v);
   }
 
-  return startups.map((s: any) => {
+  // Only recently funded startups are shown, plus any this user saved, applied to or pinned.
+  const keep = (s: any) => {
+    if (opts.id || pinned.has(s.id) || appsBy.has(s.id)) return true;
+    if (isRecentYcBatch(s.funding_round)) return true; // every YC batch of this year (Winter → Fall)
+    const date = dateOnly(s.last_funding_date) ?? ycBatchFundingDate(s.funding_round);
+    // A future date is an upcoming YC Demo Day: the company is in a batch now, so already funded.
+    return !!date && (Date.now() - new Date(date).getTime()) / 86_400_000 <= settings.addFundedWithinDays;
+  };
+
+  return startups.filter(keep).map((s: any) => {
     const js = (jobsBy.get(s.id) ?? []).sort((a, b) => b.match.match_score - a.match.match_score);
     const relevant = js.filter((j) => j.match.relevance === "strong" || j.match.relevance === "potential");
     const best = relevant[0]?.match.match_score ?? 0;
@@ -179,6 +213,8 @@ export async function loadStartups(user: AppUser, opts: { id?: number; slim?: bo
       website: s.website,
       domain: s.domain,
       linkedin_url: s.linkedin_url,
+      github_url: s.github_url ?? null,
+      open_source: isOpenSource(s.github_url, s.raw_tags),
       careers_url: s.careers_url,
       // Cards show two lines of description; the details page gets the full text.
       description: slim && s.description && s.description.length > 300 ? s.description.slice(0, 297) + "…" : s.description,
@@ -199,6 +235,19 @@ export async function loadStartups(user: AppUser, opts: { id?: number; slim?: bo
       investors: s.investors,
       funding_source: s.funding_source,
       funding_source_url: s.funding_source_url,
+      funding_date_approximate: !s.last_funding_date && !!lastFunding,
+      funding_stage: s.funding_stage ?? null,
+      funding_kind: s.funding_kind ?? (s.funding_round || s.last_funding_date ? "confirmed" : null),
+      funding_currency: s.funding_currency ?? null,
+      funding_amount_usd: s.funding_amount_usd == null ? null : Number(s.funding_amount_usd),
+      funding_verification_url: s.funding_verification_url ?? null,
+      funding_conflicts: s.funding_conflicts ?? [],
+      funding_reports: slim ? [] : s.funding_reports ?? [],
+      ...hqOf(s),
+      other_locations: s.other_locations ?? [],
+      founders: slim ? [] : s.founders ?? [],
+      categories: startupCategories({ industry: s.industry, is_ai: s.is_ai, ai_category: s.ai_category, description: s.description, tags: s.raw_tags }),
+      last_verified_at: iso(s.last_seen_at)!,
       source: s.source,
       source_url: s.source_url,
       sources_seen: slim ? [] : s.sources_seen ?? [],
@@ -210,10 +259,8 @@ export async function loadStartups(user: AppUser, opts: { id?: number; slim?: bo
       show_again: pinned.has(s.id),
       is_fresh: pinned.has(s.id) || new Date(s.first_discovered_at) >= today || new Date(s.last_updated_at) >= today,
       location_tags: [...tags],
-      // careers@ first, then general, then people
-      emails: [...(s.emails ?? [])].sort(
-        (a: any, b: any) => ["careers", "general", "person"].indexOf(a.type) - ["careers", "general", "person"].indexOf(b.type)
-      ),
+      // Careers / recruiting first, then hiring contacts, then general, then people
+      emails: [...(s.emails ?? [])].sort((a: any, b: any) => emailPriority(a) - emailPriority(b)),
       jobs: js,
       relevant_jobs: relevant.length,
       best_match: best,

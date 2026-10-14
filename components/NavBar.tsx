@@ -4,10 +4,13 @@ import { usePathname } from "next/navigation";
 import { Icon, type IconName } from "./Icon";
 import { ThemeToggle } from "./ThemeToggle";
 
-const NAV: { href: string; label: string; icon: IconName }[] = [
+/** `short` is the label in the phone tab bar, where six tabs share the width. */
+const NAV: { href: string; label: string; short?: string; icon: IconName }[] = [
   { href: "/dashboard", label: "Startups", icon: "compass" },
+  { href: "/yc-jobs", label: "YC Jobs", icon: "rocket" },
+  { href: "/open-source", label: "Open Source", short: "Open src", icon: "github" },
   { href: "/jobs", label: "Jobs", icon: "briefcase" },
-  { href: "/applications", label: "Applications", icon: "clipboard" },
+  { href: "/applications", label: "Applications", short: "Applied", icon: "clipboard" },
 ];
 const PROFILE = { href: "/settings", label: "My profile", icon: "user" as IconName };
 
@@ -58,7 +61,7 @@ export function NavBar() {
       {!onboarding && (
         <nav
           aria-label="Main"
-          className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-gray-200 bg-white/90 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:hidden"
+          className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t border-gray-200 bg-white/90 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:hidden"
         >
           {[...NAV, { ...PROFILE, label: "Profile" }].map((n) => {
             const on = active(n.href);
@@ -69,10 +72,10 @@ export function NavBar() {
                 aria-current={on ? "page" : undefined}
                 className={`flex flex-col items-center gap-1 pb-2 pt-2.5 text-[11px] font-medium ${on ? "text-brand-700" : "text-gray-500"}`}
               >
-                <span className={`flex h-7 w-12 items-center justify-center rounded-full transition-colors ${on ? "bg-brand-100" : ""}`}>
+                <span className={`flex h-7 w-11 items-center justify-center rounded-full transition-colors ${on ? "bg-brand-100" : ""}`}>
                   <Icon name={n.icon} className="h-5 w-5" strokeWidth={on ? 2.2 : 1.8} />
                 </span>
-                {n.label}
+                <span className="whitespace-nowrap">{"short" in n && n.short ? n.short : n.label}</span>
               </Link>
             );
           })}

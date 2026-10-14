@@ -58,7 +58,7 @@ function parseYears(text: string): number | null {
 }
 
 /** "0-1 years", "Fresher", "Any" etc. in a job's stated experience. (Word bounds so "10 years" / "company" don't count.) */
-const FRESHER_EXP = /\bintern|\bfresher|new grad|\b0\b|\bany\b/i;
+const FRESHER_EXP = /\bintern|\bfresher|new grad|\b0\b|\bany\b|\bentry[\s-]?level\b/i;
 
 export type JobLevel = "fresher" | "junior" | "experienced" | "unknown";
 

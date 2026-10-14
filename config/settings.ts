@@ -7,10 +7,13 @@ export const settings = {
   growingYears: 10, // founded within N years of today
   /** Funding buckets in days */
   fundingBuckets: [30, 90, 180] as const,
-  /** Only startups funded within this many days are added (YC batches dated at Demo Day). Existing ones keep updating. */
-  addFundedWithinDays: 180,
-  /** Job postings older than this are skipped and hidden. */
-  maxJobAgeDays: 180,
+  /**
+   * Only startups funded within this many days are added and shown (YC batches dated at Demo Day).
+   * Older ones stay hidden unless the user saved, applied to or pinned them.
+   */
+  addFundedWithinDays: 90,
+  /** Only jobs posted in the last N days are stored and shown (undated: N days since we first saw them). */
+  maxJobAgeDays: 7,
   /** Match-score cut-offs */
   strongMatch: 65,
   potentialMatch: 40,
@@ -19,10 +22,20 @@ export const settings = {
   requestTimeoutMs: 25000,
   /** Max YC company pages fetched per discovery run (each is ~100KB) */
   ycMaxCompanyPages: 60,
+  /** Himalayas: pages of 20 newest remote jobs open to India read per run */
+  himalayasPages: 10,
   /** Max company websites checked for a careers page per run */
   maxCareersChecks: 25,
+  /** Open source: YC pages read per run to find GitHub accounts, GitHub searches per run, accounts per search */
+  ossMaxCompanyPages: 25,
+  ossMaxSearches: 8,
+  ossOrgsPerSearch: 8,
+  /** Open source: only issues updated in the last N days are suggested */
+  ossIssueMaxAgeDays: 180,
   /** Cache lifetimes */
-  cacheHours: { ycDirectory: 20, ycCompanyPage: 20, remotive: 6, rss: 3, robots: 24 },
+  // Funding news and job boards are re-read on every new run (runs are at least 10 minutes apart);
+  // the YC directory is a daily mirror, so a day-long cache loses nothing.
+  cacheHours: { ycDirectory: 20, ycCompanyPage: 20, jobBoards: 1, rss: 0.25, robots: 24, githubSearch: 6 },
   userAgent: "DailyStartupFinder/0.1 (personal job-search tool; respects robots.txt)",
 };
 
