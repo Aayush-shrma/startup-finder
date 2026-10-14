@@ -11,6 +11,7 @@ import { COUNTRY_SHORT } from "@/lib/country";
 import { STAGE_LABELS } from "@/lib/funding";
 import { daysAgo, fundingAmountText, fundingDateText, FundingKindBadge } from "./format";
 import { fundedWithin } from "@/lib/filters";
+import { settings } from "@/config/settings";
 
 function Fact({ icon, children, title, strong }: { icon: IconName; children: React.ReactNode; title?: string; strong?: boolean }) {
   return (
@@ -36,7 +37,7 @@ export function StartupCard({ s, onChanged }: { s: StartupView; onChanged: () =>
   const relevant = s.jobs.filter((j) => j.match.relevance === "strong" || j.match.relevance === "potential");
   const others = s.jobs.filter((j) => !relevant.includes(j));
   const saved = s.applications.find((a) => a.job_id === null);
-  const recentlyFunded = fundedWithin(s, 180);
+  const recentlyFunded = fundedWithin(s, settings.addFundedWithinDays);
   const careers = s.careers_url ?? s.website ?? s.source_url;
   const first = relevant.length ? relevant.slice(0, 3) : [];
   const topJob = relevant[0];

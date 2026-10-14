@@ -21,7 +21,7 @@ export interface FilterState {
   ai: { ai: boolean; nonAi: boolean; unknown: boolean };
   /** Old saved filters only (funded_30 | funded_90 | funded_180); replaced by fundingDays. */
   funding: string[];
-  /** Funded within this many days (7 / 30 / 60 / 90; 180 from the summary tile). Null = any time. */
+  /** Funded within this many days (7 / 30 / 60 / 90; older funding isn't shown at all). Null = any time. */
   fundingDays?: number | null;
   /** Hide planned rounds and unconfirmed reports. */
   confirmedOnly?: boolean;

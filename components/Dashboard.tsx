@@ -187,7 +187,7 @@ export function Dashboard() {
       good: { relevance: ["potential"], sort: "match" },
       jobs: { hiringOnly: true, sort: "relevant_jobs" },
       ai: { types: ["AI"] },
-      funded: { fundingDays: 180, sort: "funding" },
+      funded: { fundingDays: 90, sort: "funding" },
       new: { age: ["new"], sort: "founded" },
       email: { emailOnly: true },
     };

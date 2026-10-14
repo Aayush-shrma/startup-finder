@@ -177,15 +177,30 @@ t("job age from YC-style and ISO dates", () => {
   assert.equal(jobAgeDays("about an hour ago", now), 1 / 24);
   assert.equal(Math.round(jobAgeDays("2026-09-12", now)!), 30);
   assert.equal(jobAgeDays(null, now), null);
+  // Only last week's postings (settings.maxJobAgeDays = 7).
   assert.equal(isJobTooOld("almost 2 years ago", now), true);
-  assert.equal(isJobTooOld("5 months ago", now), false);
+  assert.equal(isJobTooOld("about 1 month ago", now), true);
+  assert.equal(isJobTooOld("3 days ago", now), false);
+  assert.equal(isJobTooOld("2026-10-01", now), true);
   assert.equal(isJobTooOld(null, now), false);
+});
+t("stored relative dates and undated jobs age from when we first saw them", () => {
+  const now = new Date("2026-10-12");
+  // "3 days ago" read on 5 Oct is 10 days old on 12 Oct.
+  assert.equal(Math.round(jobAgeDays("3 days ago", now, "2026-10-05")!), 10);
+  assert.equal(isJobTooOld("3 days ago", now, "2026-10-05"), true);
+  assert.equal(isJobTooOld("3 days ago", now, "2026-10-11"), false);
+  // No posting date: first seen 2 days ago is fine, 3 weeks ago is not.
+  assert.equal(isJobTooOld(null, now, "2026-10-10"), false);
+  assert.equal(isJobTooOld(null, now, "2026-09-20"), true);
 });
 t("only recently funded startups are added", () => {
   const now = new Date();
   const ago = (d: number) => new Date(now.getTime() - d * 86_400_000).toISOString().slice(0, 10);
   const r = (funding: any) => ({ name: "X", source: "funding_rss", sourceUrl: "u", funding }) as any;
   assert.equal(fundedRecentlyEnough(r({ date: ago(20), round: "Seed", investors: [] }), now), true);
+  assert.equal(fundedRecentlyEnough(r({ date: ago(85), round: "Seed", investors: [] }), now), true);
+  assert.equal(fundedRecentlyEnough(r({ date: ago(120), round: "Seed", investors: [] }), now), false); // > 3 months
   assert.equal(fundedRecentlyEnough(r({ date: ago(400), round: "Seed", investors: [] }), now), false);
   assert.equal(fundedRecentlyEnough(r({ date: null, round: "Y Combinator Winter 2019", investors: [] }), now), false);
   assert.equal(fundedRecentlyEnough(r(null), now), false);

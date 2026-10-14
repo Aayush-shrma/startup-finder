@@ -7,8 +7,6 @@ import { cacheAgeHours, cachedJson, cachedText } from "@/lib/http";
 import { parseRemote } from "@/lib/jobs/location";
 import { settings } from "@/config/settings";
 import { ycBatchFundingDate } from "@/lib/funding";
-import { query } from "@/lib/database";
-import { normalizeName } from "@/lib/deduplication";
 import { countryFromCode, countryFromLocation } from "@/lib/country";
 import type { Founder, Headquarters } from "@/lib/types";
 
@@ -113,25 +111,20 @@ export const ycSource: StartupSource = {
     ctx.log("YC: loading hiring-company list (yc-oss mirror)…");
     const all = await cachedJson<YcOssCompany[]>(HIRING_URL, settings.cacheHours.ycDirectory);
     const urlOf = (c: YcOssCompany) => `${YC}/companies/${c.slug}`;
-    // Only recent batches (funded within settings.addFundedWithinDays) are new candidates;
-    // companies read before are still refreshed so their job lists stay current.
+    // Only batches funded within settings.addFundedWithinDays (or in a batch right now); older
+    // companies aren't shown, so their pages aren't read either.
     const recent = (c: YcOssCompany) => {
       const date = ycBatchFundingDate(`Y Combinator ${c.batch}`);
       return !!date && (Date.now() - new Date(date).getTime()) / 86_400_000 <= settings.addFundedWithinDays;
     };
-    // "Known" comes from the database: the page cache is wiped on every deploy.
-    const knownRows = await query<{ normalized_name: string }>("SELECT normalized_name FROM startups WHERE 'yc' = ANY(sources_seen)");
-    const known = new Set(knownRows.map((r) => r.normalized_name));
-    const active = all.filter((c) => c.status === "Active" && c.isHiring && (recent(c) || known.has(normalizeName(c.name))));
-    // India-based companies first, then fully remote, then other recent batches (newest first).
+    const active = all.filter((c) => c.status === "Active" && c.isHiring && recent(c));
+    // India-based companies first, then fully remote, then the rest (newest first).
     const newest = (a: YcOssCompany, b: YcOssCompany) => (b.launched_at ?? 0) - (a.launched_at ?? 0);
     const india = active.filter(isIndia);
     const remote = active.filter((c) => !isIndia(c) && c.regions?.includes("Fully Remote")).sort(newest);
-    const others = active.filter((c) => !isIndia(c) && !c.regions?.includes("Fully Remote") && recent(c)).sort(newest);
+    const others = active.filter((c) => !isIndia(c) && !c.regions?.includes("Fully Remote")).sort(newest);
     const candidates = [...india, ...remote, ...others];
-    ctx.log(
-      `YC: ${active.filter(recent).length} hiring companies from batches funded in the last ${settings.addFundedWithinDays} days; ${candidates.length} candidates incl. known ones.`
-    );
+    ctx.log(`YC: ${active.length} hiring companies from batches funded in the last ${settings.addFundedWithinDays} days.`);
 
     // Page budget per run: ~2/3 for companies never read before (new discoveries), the rest to
     // refresh the pages read longest ago (new jobs). Unused budget flows to the other group.

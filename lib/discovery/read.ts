@@ -4,6 +4,7 @@ import { query } from "@/lib/database";
 import type { AppUser } from "@/lib/users";
 import { jobLevel, matchJob } from "@/lib/matching";
 import { isJobTooOld } from "@/lib/jobs/age";
+import { settings } from "@/config/settings";
 import { candidateSkillSet } from "@/lib/matching/skills";
 import { companyLocationTags, locationTags } from "@/lib/jobs/location";
 import { ageBucket, fundingStatus, ycBatchFundingDate } from "@/lib/funding";
@@ -126,7 +127,7 @@ export async function loadStartups(user: AppUser, opts: { id?: number; slim?: bo
   const jobsBy = new Map<number, JobView[]>();
   for (const s of startups) {
     for (const { row: j, tags, roles } of data.jobsByStartup.get(s.id) ?? []) {
-    if (isJobTooOld(j.posted_date)) continue; // e.g. YC postings from years ago
+    if (isJobTooOld(j.posted_date, new Date(), j.discovered_at)) continue; // only last week's postings
     const level = jobLevel(j.job_title, j.min_experience, j.description);
     const view: JobView = {
       id: j.id,
@@ -186,7 +187,15 @@ export async function loadStartups(user: AppUser, opts: { id?: number; slim?: bo
     appsBy.get(a.startup_id)!.push(v);
   }
 
-  return startups.map((s: any) => {
+  // Only recently funded startups are shown, plus any this user saved, applied to or pinned.
+  const keep = (s: any) => {
+    if (opts.id || pinned.has(s.id) || appsBy.has(s.id)) return true;
+    const date = dateOnly(s.last_funding_date) ?? ycBatchFundingDate(s.funding_round);
+    // A future date is an upcoming YC Demo Day: the company is in a batch now, so already funded.
+    return !!date && (Date.now() - new Date(date).getTime()) / 86_400_000 <= settings.addFundedWithinDays;
+  };
+
+  return startups.filter(keep).map((s: any) => {
     const js = (jobsBy.get(s.id) ?? []).sort((a, b) => b.match.match_score - a.match.match_score);
     const relevant = js.filter((j) => j.match.relevance === "strong" || j.match.relevance === "potential");
     const best = relevant[0]?.match.match_score ?? 0;
