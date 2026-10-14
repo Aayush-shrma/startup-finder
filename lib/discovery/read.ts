@@ -211,6 +211,7 @@ export async function loadStartups(user: AppUser, opts: { id?: number; slim?: bo
       website: s.website,
       domain: s.domain,
       linkedin_url: s.linkedin_url,
+      github_url: s.github_url ?? null,
       careers_url: s.careers_url,
       // Cards show two lines of description; the details page gets the full text.
       description: slim && s.description && s.description.length > 300 ? s.description.slice(0, 297) + "…" : s.description,

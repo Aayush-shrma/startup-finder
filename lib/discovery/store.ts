@@ -88,6 +88,7 @@ export async function upsertStartup(r: StartupResult, profile: CandidateProfile)
     ["website", r.website ?? null],
     ["domain", domain],
     ["linkedin_url", linkedin],
+    ["github_url", r.githubUrl ?? null],
     ["careers_url", r.careersUrl ?? null],
     ["description", r.description ?? null],
     ["location", r.location ?? null],

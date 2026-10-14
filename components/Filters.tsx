@@ -40,7 +40,7 @@ const AGE_OPTIONS = [
 ] as const;
 
 /** Toggle pill — easier to scan than a column of checkboxes. */
-function Pill({ label, on, onClick, title }: { label: string; on: boolean; onClick: () => void; title?: string }) {
+export function Pill({ label, on, onClick, title }: { label: string; on: boolean; onClick: () => void; title?: string }) {
   return (
     <button
       type="button"

@@ -109,6 +109,19 @@ export function fundedWithin(s: Pick<StartupView, "last_funding_date">, days: nu
   return d >= -1 && d <= days; // -1: tolerate time zones on today's announcements
 }
 
+/** A Y Combinator company: YC is its funding round, or the YC directory is one of its sources. */
+export function isYcStartup(s: Pick<StartupView, "funding_round" | "sources_seen" | "source">): boolean {
+  return /Y\s?Combinator/i.test(s.funding_round ?? "") || s.source === "yc" || (s.sources_seen ?? []).includes("yc");
+}
+
+/**
+ * YC funding within `days`. Unlike fundedWithin, an upcoming Demo Day counts: YC invests when a
+ * batch starts, so a company in the current batch is already funded.
+ */
+export function ycFundedWithin(s: Pick<StartupView, "last_funding_date">, days: number): boolean {
+  return !!s.last_funding_date && daysSince(s.last_funding_date) <= days;
+}
+
 /** Profile types from onboarding ("AI") map onto our categories; others match a category or the stored industry. */
 function matchesType(s: StartupView, t: string): boolean {
   if (t === "AI") return s.categories.includes("AI & AI Agents") || s.is_ai === true || s.industry === "AI Startup";

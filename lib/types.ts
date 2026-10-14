@@ -79,6 +79,8 @@ export interface StartupResult {
   name: string;
   website?: string | null;
   linkedinUrl?: string | null;
+  /** Company GitHub account, only from a source that lists it (YC company page). */
+  githubUrl?: string | null;
   careersUrl?: string | null;
   description?: string | null;
   location?: string | null;
@@ -180,6 +182,8 @@ export interface StartupView {
   website: string | null;
   domain: string | null;
   linkedin_url: string | null;
+  /** Company GitHub account from its YC page (null when YC doesn't list one). */
+  github_url: string | null;
   careers_url: string | null;
   description: string | null;
   location: string | null;

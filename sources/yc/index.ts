@@ -31,6 +31,13 @@ export function ycHeadquarters(company: any, c: { all_locations?: string }, page
   return { hq, others: [...new Set(others)] };
 }
 
+/** The company's GitHub account as listed on its YC page, normalised to https://github.com/<name>; null if absent or not a GitHub link. */
+export function githubAccountUrl(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const m = raw.trim().match(/^(?:https?:\/\/)?(?:www\.)?github\.com\/([A-Za-z0-9](?:[A-Za-z0-9-]{0,38}))(?:[/?#].*)?$/i);
+  return m ? `https://github.com/${m[1]}` : null;
+}
+
 export function ycFounders(company: any, pageUrl: string): Founder[] {
   return (Array.isArray(company?.founders) ? company.founders : [])
     .filter((f: any) => typeof f?.full_name === "string" && f.full_name.trim())
@@ -187,6 +194,7 @@ export const ycSource: StartupSource = {
         founders: ycFounders(company, pageUrl),
         website: c.website || company.website || null,
         linkedinUrl: company.linkedin_url || null,
+        githubUrl: githubAccountUrl(company.github_url),
         description: c.long_description || c.one_liner || null,
         location: company.location || c.all_locations || null,
         tags: [...(c.tags ?? []), ...(c.industries ?? [])],

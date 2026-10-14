@@ -25,13 +25,13 @@ import {
 } from "@/lib/funding";
 import { countryFromCode, countryFromLocation } from "@/lib/country";
 import { hqFromArticle, parseRss } from "@/sources/funding";
-import { ycFounders, ycHeadquarters } from "@/sources/yc";
+import { githubAccountUrl, ycFounders, ycHeadquarters } from "@/sources/yc";
 import { mergeFundingReports, reportFrom } from "@/lib/discovery/store";
 import { hqOf } from "@/lib/discovery/read";
 import { roleType, workArrangement } from "@/lib/jobs/arrangement";
 import { startupCategories } from "@/lib/classification";
 import { emailLabel, emailPriority } from "@/lib/emails";
-import { applyFilters, DEFAULT_FILTERS, fundingWindow, type FilterState } from "@/lib/filters";
+import { applyFilters, DEFAULT_FILTERS, fundingWindow, isYcStartup, ycFundedWithin, type FilterState } from "@/lib/filters";
 
 const profile: CandidateProfile = JSON.parse(fs.readFileSync("config/candidate_profile.json", "utf8"));
 let passed = 0;
@@ -307,6 +307,29 @@ t("6th new profile from the same IP within an hour is refused; other IPs aren't 
   assert.equal(blocked?.status, 429);
   assert.ok(Number(blocked?.headers.get("Retry-After")) > 0);
   assert.equal(rateLimit(req("198.51.100.9"), "createProfile"), null);
+});
+
+console.log("YC jobs page");
+t("GitHub account only from a real github.com link", () => {
+  assert.equal(githubAccountUrl("https://github.com/acme-ai"), "https://github.com/acme-ai");
+  assert.equal(githubAccountUrl("github.com/acme/repo?tab=readme"), "https://github.com/acme");
+  assert.equal(githubAccountUrl("https://www.github.com/Acme/"), "https://github.com/Acme");
+  assert.equal(githubAccountUrl("https://gitlab.com/acme"), null);
+  assert.equal(githubAccountUrl(""), null);
+  assert.equal(githubAccountUrl(null), null);
+});
+t("YC companies are recognised by round or source", () => {
+  assert.equal(isYcStartup({ funding_round: "Y Combinator Summer 2026", sources_seen: [], source: "funding_rss" }), true);
+  assert.equal(isYcStartup({ funding_round: null, sources_seen: ["yc"], source: "company_careers" }), true);
+  assert.equal(isYcStartup({ funding_round: "Series A", sources_seen: ["funding_rss"], source: "funding_rss" }), false);
+});
+t("current YC batch (future Demo Day) counts as funded; old batches don't", () => {
+  const day = (d: number) => new Date(Date.now() - d * 86_400_000).toISOString().slice(0, 10);
+  assert.equal(ycFundedWithin({ last_funding_date: day(-60) }, 90), true); // Demo Day in 2 months
+  assert.equal(ycFundedWithin({ last_funding_date: day(40) }, 90), true);
+  assert.equal(ycFundedWithin({ last_funding_date: day(40) }, 30), false);
+  assert.equal(ycFundedWithin({ last_funding_date: day(200) }, 90), false);
+  assert.equal(ycFundedWithin({ last_funding_date: null }, 90), false);
 });
 
 console.log("queries");

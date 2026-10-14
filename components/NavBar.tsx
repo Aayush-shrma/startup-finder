@@ -6,6 +6,7 @@ import { ThemeToggle } from "./ThemeToggle";
 
 const NAV: { href: string; label: string; icon: IconName }[] = [
   { href: "/dashboard", label: "Startups", icon: "compass" },
+  { href: "/yc-jobs", label: "YC Jobs", icon: "rocket" },
   { href: "/jobs", label: "Jobs", icon: "briefcase" },
   { href: "/applications", label: "Applications", icon: "clipboard" },
 ];
@@ -58,7 +59,7 @@ export function NavBar() {
       {!onboarding && (
         <nav
           aria-label="Main"
-          className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-gray-200 bg-white/90 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:hidden"
+          className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-gray-200 bg-white/90 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:hidden"
         >
           {[...NAV, { ...PROFILE, label: "Profile" }].map((n) => {
             const on = active(n.href);
