@@ -5,6 +5,7 @@ import type { AppUser } from "@/lib/users";
 import { jobLevel, matchJob } from "@/lib/matching";
 import { isJobTooOld } from "@/lib/jobs/age";
 import { settings } from "@/config/settings";
+import { isOpenSource } from "@/lib/filters";
 import { candidateSkillSet } from "@/lib/matching/skills";
 import { companyLocationTags, locationTags } from "@/lib/jobs/location";
 import { ageBucket, fundingStatus, ycBatchFundingDate } from "@/lib/funding";
@@ -212,6 +213,7 @@ export async function loadStartups(user: AppUser, opts: { id?: number; slim?: bo
       domain: s.domain,
       linkedin_url: s.linkedin_url,
       github_url: s.github_url ?? null,
+      open_source: isOpenSource(s.github_url, s.raw_tags),
       careers_url: s.careers_url,
       // Cards show two lines of description; the details page gets the full text.
       description: slim && s.description && s.description.length > 300 ? s.description.slice(0, 297) + "…" : s.description,

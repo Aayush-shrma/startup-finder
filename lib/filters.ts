@@ -109,6 +109,11 @@ export function fundedWithin(s: Pick<StartupView, "last_funding_date">, days: nu
   return d >= -1 && d <= days; // -1: tolerate time zones on today's announcements
 }
 
+/** Open source only on a source's word: a GitHub account listed by YC, or YC's "Open Source" tag. */
+export function isOpenSource(githubUrl: string | null | undefined, tags: string[] | null | undefined): boolean {
+  return !!githubUrl || (tags ?? []).some((t) => /\bopen[\s-]?source\b/i.test(t));
+}
+
 /** A Y Combinator company: YC is its funding round, or the YC directory is one of its sources. */
 export function isYcStartup(s: Pick<StartupView, "funding_round" | "sources_seen" | "source">): boolean {
   return /Y\s?Combinator/i.test(s.funding_round ?? "") || s.source === "yc" || (s.sources_seen ?? []).includes("yc");

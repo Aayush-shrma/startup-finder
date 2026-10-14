@@ -26,9 +26,10 @@ interface Filters {
   remote: boolean;
   internship: boolean;
   fresher: boolean;
+  openSource: boolean;
   q: string;
 }
-const DEFAULTS: Filters = { funding: "90", country: "any", role: "all", remote: false, internship: false, fresher: false, q: "" };
+const DEFAULTS: Filters = { funding: "90", country: "any", role: "all", remote: false, internship: false, fresher: false, openSource: false, q: "" };
 
 /** "Y Combinator Summer 2026" → "YC Summer 2026". */
 const batchLabel = (round: string | null) => round?.replace(/^Y\s?Combinator\s*/i, "YC ").trim() || null;
@@ -50,6 +51,7 @@ function startupMatches(s: StartupView, f: Filters): boolean {
   if (f.funding !== "any" && !ycFundedWithin(s, Number(f.funding))) return false;
   if (f.country === "india" && s.hq_country !== "India") return false;
   if (f.country === "usa" && s.hq_country !== "United States") return false;
+  if (f.openSource && !s.open_source) return false;
   return true;
 }
 
@@ -78,6 +80,7 @@ function CompanyCard({ s, jobs, onChanged }: { s: StartupView; jobs: JobView[]; 
                 {s.name}
               </Link>
               {batch && <span className="rounded-md bg-amber-100 px-1.5 py-0.5 text-[11px] font-semibold text-amber-800">{batch}</span>}
+              {s.open_source && <span className="rounded-md bg-emerald-100 px-1.5 py-0.5 text-[11px] font-semibold text-emerald-800">Open source</span>}
               <FundingKindBadge kind={s.funding_kind} />
             </div>
             <p className="mt-0.5 text-[13px] text-gray-500">
@@ -250,6 +253,12 @@ export default function YcJobsPage() {
           <Pill label="Remote" on={f.remote} onClick={() => set({ remote: !f.remote })} title="Remote jobs only" />
           <Pill label="Internships" on={f.internship} onClick={() => set({ internship: !f.internship })} title="Internship and trainee roles" />
           <Pill label="Fresher-friendly" on={f.fresher} onClick={() => set({ fresher: !f.fresher })} title="Internships, entry-level, or 0–1 years asked" />
+          <Pill
+            label="Open source"
+            on={f.openSource}
+            onClick={() => set({ openSource: !f.openSource })}
+            title="Companies whose YC page lists a GitHub account or that YC tags Open Source"
+          />
         </div>
         {f.funding !== "any" && (
           <p className="text-xs text-gray-500">Companies in the current YC batch count as funded: YC invests when the batch starts.</p>

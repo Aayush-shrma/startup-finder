@@ -31,7 +31,7 @@ import { hqOf } from "@/lib/discovery/read";
 import { roleType, workArrangement } from "@/lib/jobs/arrangement";
 import { startupCategories } from "@/lib/classification";
 import { emailLabel, emailPriority } from "@/lib/emails";
-import { applyFilters, DEFAULT_FILTERS, fundingWindow, isYcStartup, ycFundedWithin, type FilterState } from "@/lib/filters";
+import { applyFilters, DEFAULT_FILTERS, fundingWindow, isOpenSource, isYcStartup, ycFundedWithin, type FilterState } from "@/lib/filters";
 
 const profile: CandidateProfile = JSON.parse(fs.readFileSync("config/candidate_profile.json", "utf8"));
 let passed = 0;
@@ -317,6 +317,13 @@ t("GitHub account only from a real github.com link", () => {
   assert.equal(githubAccountUrl("https://gitlab.com/acme"), null);
   assert.equal(githubAccountUrl(""), null);
   assert.equal(githubAccountUrl(null), null);
+});
+t("open source only from a listed GitHub account or YC's Open Source tag", () => {
+  assert.equal(isOpenSource("https://github.com/acme", []), true);
+  assert.equal(isOpenSource(null, ["B2B", "Open Source"]), true);
+  assert.equal(isOpenSource(null, ["open-source"]), true);
+  assert.equal(isOpenSource(null, ["Developer Tools", "AI"]), false);
+  assert.equal(isOpenSource(null, null), false);
 });
 t("YC companies are recognised by round or source", () => {
   assert.equal(isYcStartup({ funding_round: "Y Combinator Summer 2026", sources_seen: [], source: "funding_rss" }), true);

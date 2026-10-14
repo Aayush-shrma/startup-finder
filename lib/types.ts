@@ -184,6 +184,8 @@ export interface StartupView {
   linkedin_url: string | null;
   /** Company GitHub account from its YC page (null when YC doesn't list one). */
   github_url: string | null;
+  /** Open source per a source: YC lists a GitHub account or tags the company "Open Source". */
+  open_source: boolean;
   careers_url: string | null;
   description: string | null;
   location: string | null;
