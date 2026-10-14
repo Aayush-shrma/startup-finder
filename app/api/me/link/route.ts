@@ -5,13 +5,21 @@ import { rateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Relative redirect. Behind Render's proxy, req.url is the internal address (https://localhost:10000),
+ * so an absolute URL built from it sends people to localhost. Browsers resolve a relative Location
+ * against the address they actually opened.
+ */
+function redirectTo(path: string) {
+  return new NextResponse(null, { status: 307, headers: { Location: path } });
+}
+
 export async function GET(req: Request) {
-  const url = new URL(req.url);
   const limited = rateLimit(req, "privateLink");
   if (limited) return limited;
-  const user = await userByToken(url.searchParams.get("t"));
-  if (!user) return NextResponse.redirect(new URL("/onboarding?link=invalid", url));
-  const res = NextResponse.redirect(new URL("/dashboard", url));
+  const user = await userByToken(new URL(req.url).searchParams.get("t"));
+  if (!user) return redirectTo("/onboarding?link=invalid");
+  const res = redirectTo("/dashboard");
   res.cookies.set(USER_COOKIE, user.token, cookieOptions);
   return res;
 }
